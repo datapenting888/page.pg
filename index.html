@@ -6421,14 +6421,11 @@ setInterval(() => {
     // blok script menu "Result & Jadwal Pasaran", jadi TIDAK dipanggil lagi
     // di sini supaya tidak error "Firebase App named '[DEFAULT]' already
     // exists").
-    let dsInitRetryCount = 0;
-    const DS_INIT_MAX_RETRY = 10;
-
     function dsInitFirebase() {
         if (typeof firebase === 'undefined') {
             console.error('[Firebase] SDK belum dimuat untuk DATA SCREENSHOT.');
+            dsShowToast('⚠ Firebase belum termuat. Cek koneksi internet Anda, lalu muat ulang halaman.', 8000);
             dsEnsureDraftRow();
-            dsScheduleInitRetry('SDK Firebase belum termuat (cek koneksi internet / ad-blocker)');
             return;
         }
 
@@ -6436,13 +6433,11 @@ setInterval(() => {
             dsDB = firebase.database();
         } catch (e) {
             console.error('[Firebase] Gagal menghubungkan DATA SCREENSHOT ke Firebase:', e);
-            dsDB = null;
+            dsShowToast('⚠ Gagal terhubung ke Firebase: ' + (e && e.message ? e.message : String(e)), 8000);
             dsEnsureDraftRow();
-            dsScheduleInitRetry(e && e.message ? e.message : String(e));
             return;
         }
 
-        dsInitRetryCount = 0;
         dsCleanupExpired();
 
         const ref = dsDB.ref(DS_FB_PATH).orderByChild('timestamp');
@@ -6451,25 +6446,6 @@ setInterval(() => {
         ref.on('child_removed', (snap) => dsRemoveRowByKey(snap.key));
 
         dsEnsureDraftRow();
-    }
-
-    // Jika koneksi Firebase gagal saat menu ini pertama dibuka (mis.
-    // internet lambat/putus sesaat), JANGAN menyerah — coba lagi otomatis
-    // tiap beberapa detik sampai berhasil, tanpa perlu user reload manual.
-    // Data yang sudah diketik/ditempel di baris draft tetap aman selama
-    // ini karena dsTrySaveDraftRow() akan tetap menahan data sampai dsDB
-    // benar-benar siap.
-    function dsScheduleInitRetry(reason) {
-        if (dsDB) return; // sudah tersambung lewat jalur lain, tidak perlu retry
-        dsInitRetryCount++;
-        if (dsInitRetryCount === 1) {
-            dsShowToast('⚠ Firebase belum terhubung (' + reason + '). Mencoba menyambung ulang otomatis...', 6000);
-        }
-        if (dsInitRetryCount > DS_INIT_MAX_RETRY) {
-            dsShowToast('⚠ Masih gagal terhubung ke Firebase setelah beberapa kali percobaan. Cek koneksi internet Anda, lalu muat ulang halaman.', 10000);
-            return;
-        }
-        setTimeout(dsInitFirebase, 3000);
     }
 
     // Hapus dari Firebase baris-baris yang timestamp-nya sudah lebih dari
@@ -6859,45 +6835,21 @@ setInterval(() => {
     // lengkap: nomor rekening terisi DAN screenshot sudah ditempel. Jika
     // salah satu masih kosong, fungsi ini berhenti diam-diam dan menunggu
     // input berikutnya (dipanggil ulang dari dsProcessImageInput / dsHandleRekInput).
-    // Syarat WAJIB untuk auto-save HANYA dua: NOMOR REKENING (bukan
-    // placeholder) dan SCREENSHOT sudah ditempel. Kolom JENIS/bank
-    // TIDAK wajib — boleh dibiarkan "-" dan tidak akan menghalangi
-    // penyimpanan. Jangan tambahkan jenisSelect ke dalam syarat di bawah.
     function dsTrySaveDraftRow(row) {
         const rekInput = row.querySelector('.ds-row-rek');
         const jenisSelect = row.querySelector('.ds-row-jenis');
         const dateInput = row.querySelector('.ds-row-date');
-        const pasteArea = row.querySelector('.ds-paste-area');
         const dataUrl = row.dataset.dsPendingImg;
 
         const rekFilled = rekInput.value.trim() !== "" && rekInput.value !== "NO REKENING";
-
-        // Beri tahu user secara eksplisit kalau salah satu data wajib
-        // belum lengkap, supaya "belum tersimpan" tidak terlihat seperti
-        // bug padahal cuma menunggu data satunya diisi.
         if (!rekFilled || !dataUrl) {
-            if (dataUrl && !rekFilled) {
-                dsShowToast('✏️ Screenshot sudah ditempel — isi dulu NOMOR REKENING supaya tersimpan otomatis.', 4000);
-            } else if (!dataUrl && rekFilled) {
-                dsShowToast('📎 Nomor rekening sudah diisi — tempel dulu SCREENSHOT-nya (Ctrl+V) supaya tersimpan otomatis.', 4000);
-            }
-            return;
-        }
-
-        // Cegah pemicu ganda (mis. ketikan cepat pada kolom rekening
-        // memicu oninput berkali-kali) selagi penyimpanan sebelumnya
-        // masih berjalan pada baris yang sama.
-        if (row.dataset.dsSaving === "1") {
             return;
         }
 
         if (!dsDB) {
-            dsShowToast('⚠ Firebase belum terhubung. Data BELUM tersimpan — coba lagi sebentar setelah koneksi pulih (jangan tutup/reload halaman dulu).', 8000);
+            alert("Firebase belum terhubung, data tidak dapat disimpan. Cek koneksi internet Anda lalu muat ulang halaman.");
             return;
         }
-
-        row.dataset.dsSaving = "1";
-        if (pasteArea) pasteArea.style.opacity = "0.5";
 
         const dataToSave = {
             date: dateInput.value,
@@ -6908,26 +6860,18 @@ setInterval(() => {
             timestamp: Date.now()
         };
 
-        dsDB.ref(DS_FB_PATH).push(dataToSave).then(() => {
-            // Baris "terkunci" (locked) untuk entri ini akan otomatis
-            // muncul di atas baris draft lewat listener child_added
-            // (real-time). Baris draft ini sendiri BARU direset ke
-            // kondisi kosong SETELAH Firebase benar-benar mengonfirmasi
-            // data tersimpan — supaya tidak ada data yang hilang kalau
-            // penyimpanan gagal di tengah jalan.
-            delete row.dataset.dsPendingImg;
-            delete row.dataset.dsSaving;
-            dsResetDraftRow(row);
-        }).catch((err) => {
+        dsDB.ref(DS_FB_PATH).push(dataToSave).catch((err) => {
             console.error('[Firebase] Gagal menyimpan screenshot:', err);
-            delete row.dataset.dsSaving;
-            if (pasteArea) pasteArea.style.opacity = "";
-            dsShowToast('⚠ Gagal menyimpan ke Firebase: ' + (err && err.message ? err.message : String(err)) + ' — data belum hilang, sedang dicoba ulang otomatis.', 8000);
-            // Data (rekening & screenshot) SENGAJA tidak dihapus dari
-            // baris draft supaya tidak hilang. Coba simpan ulang secara
-            // otomatis setelah jeda singkat.
-            setTimeout(() => dsTrySaveDraftRow(row), 4000);
+            dsShowToast('⚠ Gagal menyimpan ke Firebase: ' + (err && err.message ? err.message : String(err)));
         });
+
+        delete row.dataset.dsPendingImg;
+
+        // Baris "terkunci" (locked) untuk entri ini akan otomatis muncul di
+        // atas baris draft lewat listener child_added (real-time). Baris
+        // draft ini sendiri di-reset ke kondisi kosong supaya siap dipakai
+        // untuk input entri berikutnya, tanpa membuat baris draft ganda.
+        dsResetDraftRow(row);
     }
 
     function dsResetDraftRow(row) {
