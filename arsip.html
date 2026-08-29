@@ -159,8 +159,9 @@
     color:var(--text-dim); font-weight:600;
   }
   .ref-col-head span{ box-sizing:border-box; padding:8px 20px; }
-  .ref-col-head span:nth-child(1){ width:16%; }
-  .ref-col-head span:nth-child(2){ flex:1; }
+  .ref-col-head span:nth-child(1){ width:6%; }
+  .ref-col-head span:nth-child(2){ width:16%; }
+  .ref-col-head span:nth-child(3){ flex:1; }
 
   .date-group{ border-bottom:1px solid var(--line); }
   .date-group:last-child{ border-bottom:none; }
@@ -321,6 +322,7 @@
       <div class="stat-row" id="statRow"></div>
 
       <div class="ref-col-head" id="refColHead" style="display:none;">
+        <span style="width:6%;">No</span>
         <span style="width:16%;">Kategori</span>
         <span style="padding-left:44px;">Poin Kesalahan</span>
       </div>
@@ -555,22 +557,28 @@
       return `<div class="empty">Belum ada data di tab <b>${siteName}</b>.</div>`;
     }
     let html = '';
+    let no = 0;
     groups.forEach(g => {
       if(!g.items.length) return; // lewati kategori kosong (mis. judul sheet di baris pertama)
+      no++;
       html += `<div class="date-group">
         <table>
           <colgroup>
+            <col style="width:6%;">
             <col style="width:16%;">
             <col>
           </colgroup>
           ${hideThead ? '' : `<thead class="col-head"><tr>
+            <th style="width:6%;">No</th>
             <th style="width:16%;">Kategori</th>
             <th style="padding-left:44px;">Poin Kesalahan</th>
           </tr></thead>`}
           <tbody>`;
       g.items.forEach((it, idx) => {
         const catHtml = idx === 0 ? (g.title || '—') : '';
+        const noHtml = idx === 0 ? no : '';
         html += `<tr>
+          <td style="white-space:normal; color:var(--gold-1);">${noHtml}</td>
           <td class="name" style="white-space:normal; max-width:none; color:var(--gold-1);">${catHtml}</td>
           <td style="white-space:normal; padding-left:44px;">${it.point}</td>
         </tr>`;
