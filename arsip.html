@@ -259,6 +259,7 @@
       font-size:9.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--text-dim);
     }
     td.name::before{ display:none; }
+    .no-cell{ display:none; }
   }
 
   /* ===== PHONE (<=480px) ===== */
@@ -324,7 +325,7 @@
       <div class="ref-col-head" id="refColHead" style="display:none;">
         <span style="width:6%;">No</span>
         <span style="width:16%;">Kategori</span>
-        <span style="padding-left:94px;">Poin Kesalahan</span>
+        <span style="padding-left:44px;">Poin Kesalahan</span>
       </div>
     </div>
 
@@ -564,23 +565,24 @@
       html += `<div class="date-group">
         <table>
           <colgroup>
-            <col style="width:6%;">
+            <col class="no-col" style="width:6%;">
             <col style="width:16%;">
             <col>
           </colgroup>
           ${hideThead ? '' : `<thead class="col-head"><tr>
-            <th style="width:6%;">No</th>
+            <th class="no-cell" style="width:6%;">No</th>
             <th style="width:16%;">Kategori</th>
-            <th style="padding-left:94px;">Poin Kesalahan</th>
+            <th style="padding-left:44px;">Poin Kesalahan</th>
           </tr></thead>`}
           <tbody>`;
       g.items.forEach((it, idx) => {
         const catHtml = idx === 0 ? (g.title || '—') : '';
         const noHtml = idx === 0 ? no : '';
+        const noAttr = idx === 0 ? ` data-no="${no}"` : '';
         html += `<tr>
-          <td style="white-space:normal; color:var(--gold-1);">${noHtml}</td>
-          <td class="name" style="white-space:normal; max-width:none; color:var(--gold-1);">${catHtml}</td>
-          <td style="white-space:normal; padding-left:94px;">${it.point}</td>
+          <td class="no-cell" style="white-space:normal; color:var(--gold-1);">${noHtml}</td>
+          <td class="name"${noAttr} style="white-space:normal; max-width:none; color:var(--gold-1);">${catHtml}</td>
+          <td style="white-space:normal; padding-left:44px;">${it.point}</td>
         </tr>`;
       });
       html += `</tbody></table></div>`;
