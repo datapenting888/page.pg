@@ -346,6 +346,8 @@
   const DATA_RANGE = "D1:F2000";
   // Nama tab yang BUKAN situs (halaman rekap/poin), staff-panel disembunyikan untuk tab ini
   const STAFF_PANEL_EXCLUDE = ["poin-poin kesalahan lc new", "total kesalahan"];
+  // Nama tab yang disembunyikan total dari dropdown situs (tidak muncul sebagai pilihan sama sekali)
+  const HIDE_FROM_DROPDOWN = ["total kesalahan"];
 
   const el = id => document.getElementById(id);
   let SHEET_TABS = [];              // daftar nama tab, urut sesuai spreadsheet
@@ -366,7 +368,8 @@
       throw new Error(`HTTP ${res.status} ${body.slice(0,160)}`);
     }
     const json = await res.json();
-    return (json.sheets || []).map(s => s.properties.title);
+    const titles = (json.sheets || []).map(s => s.properties.title);
+    return titles.filter(t => !HIDE_FROM_DROPDOWN.includes(t.trim().toLowerCase()));
   }
 
   // ---- Ambil data D:F dari satu tab tertentu, lalu susun jadi grup per tanggal ----
@@ -553,8 +556,12 @@
       return `<div class="empty">Belum ada data di tab <b>${siteName}</b>.</div>`;
     }
     let html = '';
-    groups.forEach(g => {
-      if(!g.items.length) return; // lewati kategori kosong (mis. judul sheet di baris pertama)
+    groups.forEach((g, gIdx) => {
+      // Lewati hanya kalau kategori kosong ini muncul di baris paling pertama
+      // (biasanya judul sheet, bukan kategori sungguhan). Kategori kosong lain
+      // (mis. "POIN-POIN KESALAHAN LC NEW" yang masih menunggu poin baru)
+      // tetap ditampilkan sebagai baris placeholder.
+      if(!g.items.length && gIdx === 0) return;
       html += `<div class="date-group">
         <table>
           <colgroup>
@@ -568,15 +575,23 @@
             <th>Keterangan</th>
           </tr></thead>`}
           <tbody>`;
-      g.items.forEach((it, idx) => {
-        const noteHtml = it.note ? it.note.replace(/\n/g,'<br>') : '—';
-        const catHtml = idx === 0 ? (g.title || '—') : '';
+      if(g.items.length){
+        g.items.forEach((it, idx) => {
+          const noteHtml = it.note ? it.note.replace(/\n/g,'<br>') : '—';
+          const catHtml = idx === 0 ? (g.title || '—') : '';
+          html += `<tr>
+            <td class="name" style="white-space:normal; max-width:none; color:var(--gold-1);">${catHtml}</td>
+            <td style="white-space:normal;">${it.point}</td>
+            <td style="color:#b9b6ac; white-space:normal;">${noteHtml}</td>
+          </tr>`;
+        });
+      } else {
         html += `<tr>
-          <td class="name" style="white-space:normal; max-width:none; color:var(--gold-1);">${catHtml}</td>
-          <td style="white-space:normal;">${it.point}</td>
-          <td style="color:#b9b6ac; white-space:normal;">${noteHtml}</td>
+          <td class="name" style="white-space:normal; max-width:none; color:var(--gold-1);">${g.title || '—'}</td>
+          <td style="white-space:normal;">—</td>
+          <td style="color:#b9b6ac; white-space:normal;">—</td>
         </tr>`;
-      });
+      }
       html += `</tbody></table></div>`;
     });
     return html || `<div class="empty">Belum ada data di tab <b>${siteName}</b>.</div>`;
