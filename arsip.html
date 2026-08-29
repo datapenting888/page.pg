@@ -98,6 +98,13 @@
     gap:16px; margin-bottom:22px;
   }
   .main-top h2{ margin:0 0 4px; font-family:'Georgia', serif; font-size:26px; color:var(--text); }
+  .back-btn{
+    display:inline-flex; align-items:center; gap:6px; margin-bottom:10px;
+    background:transparent; border:1px solid var(--line); color:var(--text-dim);
+    padding:6px 12px; border-radius:7px; font-size:12.5px; cursor:pointer;
+    font-family:inherit;
+  }
+  .back-btn:hover{ border-color:var(--gold-2); color:var(--gold-1); }
 
   .stat-row{
     display:grid; grid-template-columns:repeat(3, 1fr);
@@ -317,6 +324,7 @@
     <div class="main-sticky">
       <div class="main-top">
         <div>
+          <button type="button" id="backToMainBtn" class="back-btn" style="display:none;">&larr; Kembali</button>
           <h2 id="activeSiteTitle">—</h2>
         </div>
       </div>
@@ -628,6 +636,8 @@
     updateTriggerLabel();
     closeCsDropdown();
     renderSiteList(el('siteSearch').value);
+    const isMainMenu = siteName.trim().toLowerCase() === 'total kesalahan';
+    el('backToMainBtn').style.display = isMainMenu ? 'none' : '';
     el('statRow').innerHTML = '';
     el('staffPanel').innerHTML = '';
     const isReference = STAFF_PANEL_EXCLUDE.includes(siteName.trim().toLowerCase());
@@ -741,6 +751,11 @@
   });
   document.addEventListener('keydown', e => {
     if(e.key === 'Escape') closeCsDropdown();
+  });
+
+  el('backToMainBtn').addEventListener('click', () => {
+    const mainTab = findRawTabName('total kesalahan');
+    if(mainTab) selectSite(mainTab);
   });
 
   // Buka/tutup grup tanggal dengan klik pada headernya (accordion)
