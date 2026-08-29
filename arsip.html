@@ -160,8 +160,7 @@
   }
   .ref-col-head span{ box-sizing:border-box; padding:8px 20px; }
   .ref-col-head span:nth-child(1){ width:16%; }
-  .ref-col-head span:nth-child(2){ width:32%; }
-  .ref-col-head span:nth-child(3){ flex:1; }
+  .ref-col-head span:nth-child(2){ flex:1; }
 
   .date-group{ border-bottom:1px solid var(--line); }
   .date-group:last-child{ border-bottom:none; }
@@ -323,8 +322,7 @@
 
       <div class="ref-col-head" id="refColHead" style="display:none;">
         <span style="width:16%;">Kategori</span>
-        <span style="width:32%;">Poin Kesalahan</span>
-        <span>Keterangan</span>
+        <span style="padding-left:24px;">Poin Kesalahan</span>
       </div>
     </div>
 
@@ -559,22 +557,18 @@
         <table>
           <colgroup>
             <col style="width:16%;">
-            <col style="width:32%;">
             <col>
           </colgroup>
           ${hideThead ? '' : `<thead class="col-head"><tr>
             <th style="width:16%;">Kategori</th>
-            <th style="width:32%;">Poin Kesalahan</th>
-            <th>Keterangan</th>
+            <th style="padding-left:24px;">Poin Kesalahan</th>
           </tr></thead>`}
           <tbody>`;
       g.items.forEach((it, idx) => {
-        const noteHtml = it.note ? it.note.replace(/\n/g,'<br>') : '—';
         const catHtml = idx === 0 ? (g.title || '—') : '';
         html += `<tr>
           <td class="name" style="white-space:normal; max-width:none; color:var(--gold-1);">${catHtml}</td>
-          <td style="white-space:normal;">${it.point}</td>
-          <td style="color:#b9b6ac; white-space:normal;">${noteHtml}</td>
+          <td style="white-space:normal; padding-left:24px;">${it.point}</td>
         </tr>`;
       });
       html += `</tbody></table></div>`;
