@@ -183,6 +183,8 @@
   tbody td{ padding:10px 20px; border-bottom:1px solid #1c1e23; color:#dedbd0; vertical-align:middle; }
   tbody tr:hover{ background:rgba(243,201,105,0.05); }
   tbody tr:last-child td{ border-bottom:none; }
+  .ref-link{ cursor:pointer; text-decoration:none; border-bottom:1px dashed rgba(243,201,105,0.45); }
+  .ref-link:hover{ color:#fff; border-bottom-color:var(--gold-1); }
   td.name{ font-weight:600; color:#f0ede4; }
   td.name .name-txt{
     display:block; max-width:15ch; overflow:hidden; text-overflow:ellipsis;
@@ -350,7 +352,8 @@
   const HIDE_FROM_DROPDOWN = ["total kesalahan"];
 
   const el = id => document.getElementById(id);
-  let SHEET_TABS = [];              // daftar nama tab, urut sesuai spreadsheet
+  let SHEET_TABS = [];              // daftar nama tab yang tampil di dropdown (tanpa yang disembunyikan)
+  let RAW_SHEET_TABS = [];          // semua nama tab asli, termasuk yang disembunyikan dari dropdown
   let SITE_DATA = {};               // cache: { tabName: { date: [records] } }
   let activeSite = null;
   let loadingSet = new Set();
@@ -369,7 +372,16 @@
     }
     const json = await res.json();
     const titles = (json.sheets || []).map(s => s.properties.title);
+    RAW_SHEET_TABS = titles;
     return titles.filter(t => !HIDE_FROM_DROPDOWN.includes(t.trim().toLowerCase()));
+  }
+
+  // Cari nama tab asli (dengan huruf besar/kecil aslinya) berdasarkan pencocokan tanpa
+  // memandang huruf besar/kecil — dipakai untuk menautkan kategori di tab TOTAL KESALAHAN
+  // langsung ke tab situsnya masing-masing.
+  function findRawTabName(title){
+    const t = (title || '').trim().toLowerCase();
+    return RAW_SHEET_TABS.find(s => s.trim().toLowerCase() === t);
   }
 
   // ---- Ambil data D:F dari satu tab tertentu, lalu susun jadi grup per tanggal ----
@@ -555,6 +567,19 @@
     if(!groups.length){
       return `<div class="empty">Belum ada data di tab <b>${siteName}</b>.</div>`;
     }
+    // Di tab TOTAL KESALAHAN, tiap nama kategori sebenarnya adalah nama situs —
+    // jadikan tautan supaya langsung membuka data situs itu saat diklik.
+    const enableSiteLinks = siteName.trim().toLowerCase() === 'total kesalahan';
+    function renderCategoryCell(title){
+      const label = title || '—';
+      if(enableSiteLinks){
+        const rawTab = findRawTabName(title);
+        if(rawTab){
+          return `<span class="ref-link" data-site="${rawTab.replace(/"/g,'&quot;')}">${label}</span>`;
+        }
+      }
+      return label;
+    }
     let html = '';
     groups.forEach((g, gIdx) => {
       // Lewati hanya kalau kategori kosong ini muncul di baris paling pertama
@@ -578,7 +603,7 @@
       if(g.items.length){
         g.items.forEach((it, idx) => {
           const noteHtml = it.note ? it.note.replace(/\n/g,'<br>') : '—';
-          const catHtml = idx === 0 ? (g.title || '—') : '';
+          const catHtml = idx === 0 ? renderCategoryCell(g.title) : '';
           html += `<tr>
             <td class="name" style="white-space:normal; max-width:none; color:var(--gold-1);">${catHtml}</td>
             <td style="white-space:normal;">${it.point}</td>
@@ -587,7 +612,7 @@
         });
       } else {
         html += `<tr>
-          <td class="name" style="white-space:normal; max-width:none; color:var(--gold-1);">${g.title || '—'}</td>
+          <td class="name" style="white-space:normal; max-width:none; color:var(--gold-1);">${renderCategoryCell(g.title)}</td>
           <td style="white-space:normal;">—</td>
           <td style="color:#b9b6ac; white-space:normal;">—</td>
         </tr>`;
@@ -686,7 +711,8 @@
       if(!SHEET_TABS.length) throw new Error('Tidak ada tab ditemukan di spreadsheet ini');
       setLive(true);
       renderSiteList();
-      await selectSite(SHEET_TABS[0]);
+      const defaultTab = findRawTabName('total kesalahan') || SHEET_TABS[0];
+      await selectSite(defaultTab);
     } catch(err){
       console.error(err);
       setLive(false);
@@ -719,6 +745,8 @@
 
   // Buka/tutup grup tanggal dengan klik pada headernya (accordion)
   el('resultPanel').addEventListener('click', e => {
+    const link = e.target.closest('.ref-link[data-site]');
+    if(link){ selectSite(link.getAttribute('data-site')); return; }
     const head = e.target.closest('.date-head');
     if(head) head.closest('.date-group').classList.toggle('open');
   });
