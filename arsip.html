@@ -487,6 +487,8 @@
     return Array.from(map.entries()).map(([name, count]) => ({ name, count }));
   }
 
+  const isDesktopView = () => window.matchMedia('(min-width:821px)').matches;
+
   function renderStaffPanel(records){
     const staff = aggregateStaff(records);
     const rows = staff.map(s => `<div class="stf-row">
@@ -497,6 +499,8 @@
       <div class="stf-head"><span>Nama Staff</span><span>Total Kesalahan</span></div>
       <div class="stf-body">${rows || '<div class="empty" style="padding:24px;">Belum ada data.</div>'}</div>
     `;
+    // Desktop: langsung tampil terbuka saat pasaran dipilih. Mobile: tetap dropdown (tertutup).
+    el('staffPanel').classList.toggle('open', isDesktopView());
   }
 
   // ---- Untuk tab REFERENSI (mis. "poin-poin kesalahan lc new"): bukan log Nama/Link/Status,
@@ -584,6 +588,7 @@
     renderSiteList(el('siteSearch').value);
     el('statRow').innerHTML = '';
     el('staffPanel').innerHTML = '';
+    el('staffPanel').classList.remove('open');
     const isReference = STAFF_PANEL_EXCLUDE.includes(siteName.trim().toLowerCase());
     el('staffPanel').style.display = isReference ? 'none' : '';
     // Topbar kolom (Kategori / Poin Kesalahan / Keterangan) yang statis di atas —
