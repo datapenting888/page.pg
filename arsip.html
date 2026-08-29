@@ -324,7 +324,7 @@
       <div class="ref-col-head" id="refColHead" style="display:none;">
         <span style="width:6%;">No</span>
         <span style="width:16%;">Kategori</span>
-        <span style="padding-left:64px;">Poin Kesalahan</span>
+        <span style="padding-left:44px;">Poin Kesalahan</span>
       </div>
     </div>
 
@@ -571,7 +571,7 @@
           ${hideThead ? '' : `<thead class="col-head"><tr>
             <th style="width:6%;">No</th>
             <th style="width:16%;">Kategori</th>
-            <th style="padding-left:64px;">Poin Kesalahan</th>
+            <th style="padding-left:44px;">Poin Kesalahan</th>
           </tr></thead>`}
           <tbody>`;
       g.items.forEach((it, idx) => {
@@ -580,7 +580,7 @@
         html += `<tr>
           <td style="white-space:normal; color:var(--gold-1);">${noHtml}</td>
           <td class="name" style="white-space:normal; max-width:none; color:var(--gold-1);">${catHtml}</td>
-          <td style="white-space:normal; padding-left:64px;">${it.point}</td>
+          <td style="white-space:normal; padding-left:44px;">${it.point}</td>
         </tr>`;
       });
       html += `</tbody></table></div>`;
