@@ -73,7 +73,7 @@
     padding:9px 11px; border-radius:7px; font-size:13px; outline:none;
   }
   .cs-search input:focus{ border-color:var(--gold-2); }
-  .cs-options{ max-height:calc(100vh - 220px); overflow-y:auto; }
+  .cs-options{ max-height:260px; overflow-y:auto; }
   .cs-option{
     padding:10px 14px; font-size:13px; color:var(--text); cursor:pointer;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
@@ -837,11 +837,8 @@
         el('csOptions').innerHTML = `<div class="cs-option empty">Gagal memuat daftar tab</div>`;
         el('resultPanel').innerHTML = `<div class="empty">
           Tidak bisa terhubung ke spreadsheet.<br><br>
-          <span style="font-size:12px; color:var(--red);">${(err && err.message) ? err.message : 'Unknown error'}</span><br><br>
           <span style="font-size:12px;">Pastikan spreadsheet di-set "Anyone with the link can view",
-          API key aktif untuk Google Sheets API di Google Cloud Console, dan (kalau dashboard ini dipasang
-          di dalam iframe/situs lain) domain situs tersebut sudah diizinkan di pembatasan
-          HTTP referrer API key-nya.</span>
+          dan API key aktif untuk Google Sheets API di Google Cloud Console.</span>
         </div>`;
       } else {
         setRefreshMeta('Menampilkan data tersimpan (gagal terhubung ke server)');
