@@ -407,18 +407,10 @@
     return ['total kesalahan', 'poin-poin kesalahan lc new'].includes(siteName.trim().toLowerCase());
   }
 
-  // ---- Fetch yang selalu ambil data terbaru dari server, tidak pernah dari cache HTTP
-  // browser (penting di HP — Chrome/Safari mobile kadang menyimpan cache respons GET
-  // yang sama walau halamannya sendiri sudah di-refresh). ----
-  function freshFetch(url){
-    const buster = (url.includes('?') ? '&' : '?') + '_ts=' + Date.now();
-    return fetch(url + buster, { cache: 'no-store' });
-  }
-
   // ---- Ambil daftar semua tab/sheet dalam spreadsheet (ini yang jadi sidebar) ----
   async function fetchSheetTabs(){
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?fields=sheets.properties.title&key=${API_KEY}`;
-    const res = await freshFetch(url);
+    const res = await fetch(url);
     if(!res.ok){
       const body = await res.text().catch(()=> '');
       throw new Error(`HTTP ${res.status} ${body.slice(0,160)}`);
@@ -446,7 +438,7 @@
     if(!force && SITE_DATA[siteName]) return SITE_DATA[siteName];
     const range = `'${siteName.replace(/'/g,"''")}'!${DATA_RANGE}`;
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}?key=${API_KEY}`;
-    const res = await freshFetch(url);
+    const res = await fetch(url);
     if(!res.ok){
       const body = await res.text().catch(()=> '');
       throw new Error(`HTTP ${res.status} ${body.slice(0,160)}`);
@@ -572,7 +564,7 @@
     if(!force && SITE_DATA[siteName]) return SITE_DATA[siteName];
     const range = `'${siteName.replace(/'/g,"''")}'!${DATA_RANGE}`;
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}?key=${API_KEY}`;
-    const res = await freshFetch(url);
+    const res = await fetch(url);
     if(!res.ok){
       const body = await res.text().catch(()=> '');
       throw new Error(`HTTP ${res.status} ${body.slice(0,160)}`);
@@ -716,8 +708,7 @@
     el('resultPanel').innerHTML = html || `<div class="empty">Tidak ada data untuk ditampilkan.</div>`;
   }
 
-  async function selectSite(siteName, opts={}){
-    const forceFresh = !!opts.force;
+  async function selectSite(siteName){
     activeSite = siteName;
     el('activeSiteTitle').textContent = siteName;
     updateTriggerLabel();
@@ -733,8 +724,7 @@
 
     const cached = SITE_DATA[siteName];
     if(cached){
-      // Sudah ada data (dari sesi ini atau cache lokal) → langsung tampil, tidak nge-blank,
-      // sambil tetap menarik data terbaru di belakang layar (lihat forceFresh di bawah).
+      // Sudah ada di memori (dipilih sebelumnya) → langsung tampil, tidak nge-blank.
       el('statRow').innerHTML = '';
       renderSiteContent(siteName);
     } else {
@@ -745,9 +735,9 @@
 
     try{
       if(isReference){
-        await fetchReferenceData(siteName, forceFresh);
+        await fetchReferenceData(siteName);
       } else {
-        await fetchSiteData(siteName, forceFresh);
+        await fetchSiteData(siteName);
         renderSiteList(el('siteSearch').value); // update count badge
         updateTriggerLabel();
       }
@@ -825,10 +815,7 @@
       setLive(true);
       renderSiteList();
       const targetSite = (activeSite && freshTabs.includes(activeSite)) ? activeSite : freshTabs[0];
-      // force:true → walau ada data cache lokal yang barusan ditampilkan, tetap PASTI
-      // tarik ulang dari server (bukan cuma dipakai apa adanya), supaya pertama kali
-      // buka dashboard / refresh (termasuk di HP) selalu dapat data terbaru.
-      await selectSite(targetSite, { force: true });
+      await selectSite(targetSite);
     } catch(err){
       console.error(err);
       setLive(false);
