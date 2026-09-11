@@ -73,7 +73,7 @@
     padding:9px 11px; border-radius:7px; font-size:13px; outline:none;
   }
   .cs-search input:focus{ border-color:var(--gold-2); }
-  .cs-options{ max-height:260px; overflow-y:auto; }
+  .cs-options{ max-height:calc(100vh - 220px); overflow-y:auto; }
   .cs-option{
     padding:10px 14px; font-size:13px; color:var(--text); cursor:pointer;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
@@ -409,10 +409,11 @@
 
   // ---- Fetch yang selalu ambil data terbaru dari server, tidak pernah dari cache HTTP
   // browser (penting di HP — Chrome/Safari mobile kadang menyimpan cache respons GET
-  // yang sama walau halamannya sendiri sudah di-refresh). ----
+  // yang sama walau halamannya sendiri sudah di-refresh). Catatan: JANGAN tambahkan
+  // parameter query buatan sendiri (mis. _ts) di URL ini — Google Sheets API menolak
+  // parameter yang tidak dikenal dengan error "Invalid JSON payload" / "Unknown name". ----
   function freshFetch(url){
-    const buster = (url.includes('?') ? '&' : '?') + '_ts=' + Date.now();
-    return fetch(url + buster, { cache: 'no-store' });
+    return fetch(url, { cache: 'no-store' });
   }
 
   // ---- Ambil daftar semua tab/sheet dalam spreadsheet (ini yang jadi sidebar) ----
@@ -837,8 +838,11 @@
         el('csOptions').innerHTML = `<div class="cs-option empty">Gagal memuat daftar tab</div>`;
         el('resultPanel').innerHTML = `<div class="empty">
           Tidak bisa terhubung ke spreadsheet.<br><br>
+          <span style="font-size:12px; color:var(--red);">${(err && err.message) ? err.message : 'Unknown error'}</span><br><br>
           <span style="font-size:12px;">Pastikan spreadsheet di-set "Anyone with the link can view",
-          dan API key aktif untuk Google Sheets API di Google Cloud Console.</span>
+          API key aktif untuk Google Sheets API di Google Cloud Console, dan (kalau dashboard ini dipasang
+          di dalam iframe/situs lain) domain situs tersebut sudah diizinkan di pembatasan
+          HTTP referrer API key-nya.</span>
         </div>`;
       } else {
         setRefreshMeta('Menampilkan data tersimpan (gagal terhubung ke server)');
