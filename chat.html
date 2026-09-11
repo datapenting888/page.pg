@@ -2312,8 +2312,8 @@
           photoURL: targetProfile.photoURL || ''
         };
         updates['friends/' + targetUid + '/' + currentUser.uid] = {
-          name: currentUser.name,
-          email: currentUser.email,
+          name: currentUser.name || currentUser.email || 'Pengguna',
+          email: currentUser.email || '',
           photoURL: currentUser.photoURL || ''
         };
         updates['friendRequests/' + targetUid + '/' + currentUser.uid] = null;
@@ -2359,7 +2359,7 @@
         let profile = snap.val() || { name: user.email, email: user.email };
         currentUser = {
           uid: user.uid,
-          name: profile.name,
+          name: profile.name || profile.email || user.email || 'Pengguna',
           email: profile.email || user.email,
           status: profile.status || 'Halo, saya menggunakan Data Penting Chat',
           photoURL: profile.photoURL || ''
