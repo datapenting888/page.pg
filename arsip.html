@@ -512,10 +512,27 @@
     el('siteSearch').value = '';
     renderSiteList('');
     el('siteSearch').focus();
+    fitCsDropdown();
   }
   function closeCsDropdown(){
     el('customSelect').classList.remove('open');
   }
+
+  // Bikin daftar situs mengisi sisa ruang ke bawah (sampai tepi kontainer/viewport),
+  // baru muncul scrollbar kalau memang daftarnya lebih panjang dari ruang tsb.
+  function fitCsDropdown(){
+    const dropdown = el('csDropdown');
+    const options = el('csOptions');
+    const searchBar = dropdown.querySelector('.cs-search');
+    const margin = 16; // jarak aman ke tepi bawah
+    const top = dropdown.getBoundingClientRect().top;
+    const searchH = searchBar ? searchBar.offsetHeight : 0;
+    const available = Math.max(140, window.innerHeight - top - searchH - margin);
+    options.style.maxHeight = available + 'px';
+  }
+  window.addEventListener('resize', () => {
+    if(el('customSelect').classList.contains('open')) fitCsDropdown();
+  });
 
   function statusMeta(status){
     switch(status){
