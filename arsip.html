@@ -99,6 +99,20 @@
   }
   .main-top h2{ margin:0 0 4px; font-family:'Georgia', serif; font-size:26px; color:var(--text); }
 
+  .refresh-btn{
+    display:flex; align-items:center; gap:7px;
+    background:transparent; border:1px solid var(--line); color:var(--gold-1);
+    font-size:12px; letter-spacing:.1em; text-transform:uppercase;
+    padding:9px 16px; border-radius:8px; cursor:pointer; font-family:inherit; font-weight:600;
+    transition:border-color .15s, background .15s, opacity .15s;
+  }
+  .refresh-btn:hover{ border-color:var(--gold-2); background:rgba(243,201,105,0.07); }
+  .refresh-btn:active{ background:rgba(243,201,105,0.14); }
+  .refresh-btn:disabled{ opacity:.55; cursor:default; }
+  .refresh-btn svg{ width:14px; height:14px; flex-shrink:0; }
+  .refresh-btn.spinning svg{ animation:spin-refresh .7s linear infinite; }
+  @keyframes spin-refresh{ to{ transform:rotate(360deg); } }
+
   .stat-row{
     display:grid; grid-template-columns:repeat(3, 1fr);
     gap:14px; margin-bottom:24px;
@@ -318,6 +332,13 @@
         <div>
           <h2 id="activeSiteTitle">—</h2>
         </div>
+        <button id="siteRefreshBtn" class="refresh-btn" title="Muat ulang data tab ini">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12a9 9 0 1 1-2.64-6.36"></path>
+            <polyline points="21 3 21 9 15 9"></polyline>
+          </svg>
+          Refresh
+        </button>
       </div>
 
       <div class="stat-row" id="statRow"></div>
@@ -773,6 +794,36 @@
       // Kalau sudah ada cache tabs, biarkan sidebar dari cache tetap tampil apa adanya.
     }
   }
+
+  // Tombol "REFRESH" di atas judul situs — paksa muat ulang data tab yang sedang dibuka saja.
+  el('siteRefreshBtn').addEventListener('click', async (e) => {
+    e.stopPropagation();
+    if(!activeSite) return;
+    const btn = el('siteRefreshBtn');
+    btn.classList.add('spinning');
+    btn.disabled = true;
+    try{
+      const isReference = STAFF_PANEL_EXCLUDE.includes(activeSite.trim().toLowerCase());
+      const isStickyHeaderTab = ['total kesalahan', 'poin-poin kesalahan lc new'].includes(activeSite.trim().toLowerCase());
+      const groups = isReference
+        ? await fetchReferenceData(activeSite, { force: true })
+        : await fetchSiteData(activeSite, { force: true });
+      setLive(true);
+      if(isReference){
+        el('resultPanel').innerHTML = renderReferenceList(groups, activeSite, isStickyHeaderTab);
+      } else {
+        renderSiteList(el('siteSearch').value);
+        updateTriggerLabel();
+        renderSiteResult(groups, activeSite);
+      }
+    } catch(err){
+      console.error(err);
+      setLive(false);
+    } finally {
+      btn.classList.remove('spinning');
+      btn.disabled = false;
+    }
+  });
 
   // Tombol "⟳" — paksa muat ulang total dari spreadsheet (lewati semua cache).
   el('refreshBtn').addEventListener('click', async (e) => {
