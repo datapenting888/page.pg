@@ -301,7 +301,7 @@
 
   <aside class="sidebar">
     <div class="sidebar-head">
-      <p class="eyebrow"><span class="live-dot" id="liveDot"></span> Arsip Report · Live <button id="refreshBtn" title="Muat ulang paksa" style="margin-left:auto; background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:14px; line-height:1; padding:2px 4px;">⟳</button></p>
+      <p class="eyebrow"><span class="live-dot" id="liveDot"></span> Arsip Report · Live</p>
     </div>
     <div class="sidebar-body">
       <div class="site-select-wrap">
@@ -825,27 +825,7 @@
     }
   });
 
-  // Tombol "⟳" — paksa muat ulang total dari spreadsheet (lewati semua cache).
-  el('refreshBtn').addEventListener('click', async (e) => {
-    e.stopPropagation();
-    el('refreshBtn').style.opacity = '0.4';
-    SITE_DATA = {};
-    try{
-      const tabs = await fetchSheetTabs();
-      SHEET_TABS = tabs;
-      CACHE.tabs = tabs;
-      saveCache();
-      setLive(true);
-      renderSiteList(el('siteSearch').value);
-      const site = (activeSite && tabs.includes(activeSite)) ? activeSite : tabs[0];
-      await selectSite(site);
-    }catch(err){
-      console.error(err);
-      setLive(false);
-    }finally{
-      el('refreshBtn').style.opacity = '';
-    }
-  });
+
 
   el('siteSearch').addEventListener('input', e => renderSiteList(e.target.value));
   el('siteSearch').addEventListener('click', e => e.stopPropagation());
