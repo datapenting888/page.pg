@@ -287,7 +287,7 @@
 
   <aside class="sidebar">
     <div class="sidebar-head">
-      <p class="eyebrow"><span class="live-dot" id="liveDot"></span> Arsip Report · Live</p>
+      <p class="eyebrow"><span class="live-dot" id="liveDot"></span> Arsip Report · Live <button id="refreshBtn" title="Muat ulang paksa" style="margin-left:auto; background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:14px; line-height:1; padding:2px 4px;">⟳</button></p>
     </div>
     <div class="sidebar-body">
       <div class="site-select-wrap">
@@ -350,12 +350,43 @@
 
   const el = id => document.getElementById(id);
   let SHEET_TABS = [];              // daftar nama tab, urut sesuai spreadsheet
-  let SITE_DATA = {};               // cache: { tabName: { date: [records] } }
+  let SITE_DATA = {};               // cache in-memory (per sesi): { tabName: { date: [records] } }
   let activeSite = null;
   let loadingSet = new Set();
 
   function setLive(ok){
     el('liveDot').className = 'live-dot' + (ok ? '' : ' err');
+  }
+
+  /* =========================================================
+     CACHE LOKAL (localStorage) — supaya refresh terasa instan.
+     Data di spreadsheet jarang berubah, jadi: tampilkan dulu versi
+     tersimpan (kalau ada) tanpa nunggu network, lalu diam-diam tarik
+     data terbaru di background dan update tampilan kalau ada perubahan.
+     ========================================================= */
+  const CACHE_KEY = 'arsipDashboardCacheV2';
+  function loadCache(){
+    try{
+      const raw = localStorage.getItem(CACHE_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      return (parsed && typeof parsed === 'object') ? parsed : { tabs: null, activeSite: null, sites: {} };
+    }catch(e){ return { tabs: null, activeSite: null, sites: {} }; }
+  }
+  let CACHE = loadCache();
+  let cacheSaveTimer = null;
+  function saveCache(){
+    clearTimeout(cacheSaveTimer);
+    cacheSaveTimer = setTimeout(() => {
+      try{ localStorage.setItem(CACHE_KEY, JSON.stringify(CACHE)); }catch(e){ /* storage penuh/diblokir, abaikan */ }
+    }, 120);
+  }
+  function getCachedSite(siteName){
+    const c = CACHE.sites[siteName];
+    return c ? c.data : null;
+  }
+  function setCachedSite(siteName, data){
+    CACHE.sites[siteName] = { data, fetchedAt: Date.now() };
+    saveCache();
   }
 
   // ---- Ambil daftar semua tab/sheet dalam spreadsheet (ini yang jadi sidebar) ----
@@ -383,8 +414,8 @@
     return 'noresp';
   }
 
-  async function fetchSiteData(siteName){
-    if(SITE_DATA[siteName]) return SITE_DATA[siteName];
+  async function fetchSiteData(siteName, opts={}){
+    if(!opts.force && SITE_DATA[siteName]) return SITE_DATA[siteName];
     const range = `'${siteName.replace(/'/g,"''")}'!${DATA_RANGE}`;
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}?key=${API_KEY}`;
     const res = await fetch(url);
@@ -422,6 +453,7 @@
     });
 
     SITE_DATA[siteName] = groups;
+    setCachedSite(siteName, groups);
     return groups;
   }
 
@@ -508,8 +540,8 @@
 
   // ---- Untuk tab REFERENSI (mis. "poin-poin kesalahan lc new"): bukan log Nama/Link/Status,
   //      tapi daftar Kategori (D) > Poin Kesalahan (E) > Keterangan (F) ----
-  async function fetchReferenceData(siteName){
-    if(SITE_DATA[siteName]) return SITE_DATA[siteName];
+  async function fetchReferenceData(siteName, opts={}){
+    if(!opts.force && SITE_DATA[siteName]) return SITE_DATA[siteName];
     const range = `'${siteName.replace(/'/g,"''")}'!${DATA_RANGE}`;
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}?key=${API_KEY}`;
     const res = await fetch(url);
@@ -550,6 +582,7 @@
     });
 
     SITE_DATA[siteName] = groups;
+    setCachedSite(siteName, groups);
     return groups;
   }
 
@@ -590,109 +623,178 @@
     return html || `<div class="empty">Belum ada data di tab <b>${siteName}</b>.</div>`;
   }
 
-  async function selectSite(siteName){
+  // ---- Render tabel log (Nama/Link/Status) ke dalam #resultPanel + stats + staff panel ----
+  function renderSiteResult(groups, siteName){
+    const allRecords = Object.values(groups).flat();
+
+    if(!allRecords.length){
+      el('statRow').innerHTML = '';
+      el('staffPanel').innerHTML = '';
+      el('resultPanel').innerHTML = `<div class="empty"></div>`;
+      return;
+    }
+
+    renderStats(allRecords);
+    renderStaffPanel(allRecords);
+    let html = '';
+    const dateEntries = Object.entries(groups).filter(([, records]) => records.length).reverse();
+    dateEntries.forEach(([date, records], idx) => {
+      const isLatest = idx === 0;
+      html += `<div class="date-group log-group${isLatest ? ' open' : ''}">
+        <div class="date-head">${date}</div>
+        <table>
+          <thead class="col-head"><tr>
+            <th style="width:30%;">Nama / ID</th>
+            <th style="width:26%;">Link</th>
+            <th>Status</th>
+          </tr></thead>
+          <tbody>`;
+      records.forEach(r => {
+        const meta = statusMeta(r.status);
+        const linkHtml = r.link ? `<a href="${r.link}" target="_blank" rel="noopener" title="${r.link}">${r.link}</a>` : '—';
+        html += `<tr>
+          <td class="name" data-label="Nama / ID"><span class="name-txt" title="${r.name}">${r.name}</span></td>
+          <td class="link" data-label="Link">${linkHtml}</td>
+          <td data-label="Status"><span class="status-pill ${meta.cls}"><span class="dot"></span>${r.note}</span></td>
+        </tr>`;
+      });
+      html += `</tbody></table></div>`;
+    });
+    el('resultPanel').innerHTML = html || `<div class="empty">Tidak ada data untuk ditampilkan.</div>`;
+  }
+
+  // opts.silent = true → jangan tampilkan spinner/blank state, kita sedang refresh diam-diam
+  //               di belakang layar sambil versi cache-nya sudah tampil di layar.
+  async function selectSite(siteName, opts={}){
     activeSite = siteName;
+    CACHE.activeSite = siteName;
+    saveCache();
     el('activeSiteTitle').textContent = siteName;
     updateTriggerLabel();
     closeCsDropdown();
     renderSiteList(el('siteSearch').value);
-    el('statRow').innerHTML = '';
-    el('staffPanel').innerHTML = '';
-    el('staffPanel').classList.remove('open');
     const isReference = STAFF_PANEL_EXCLUDE.includes(siteName.trim().toLowerCase());
-    el('staffPanel').style.display = isReference ? 'none' : '';
     // Topbar kolom (Kategori / Poin Kesalahan / Keterangan) yang statis di atas —
     // khusus untuk tab "total kesalahan"
     const isStickyHeaderTab = ['total kesalahan', 'poin-poin kesalahan lc new'].includes(siteName.trim().toLowerCase());
     el('refColHead').style.display = isStickyHeaderTab ? 'flex' : 'none';
     el('resultPanel').classList.toggle('flat-top', isStickyHeaderTab);
-    el('resultPanel').innerHTML = `<div class="empty"><div class="spin"></div>Menarik data dari tab "${siteName}"...</div>`;
 
-    // ---- Tab referensi (bukan log Nama/Link/Status) ----
-    if(isReference){
-      try{
-        const groups = await fetchReferenceData(siteName);
-        el('resultPanel').innerHTML = renderReferenceList(groups, siteName, isStickyHeaderTab);
-      } catch(err){
-        console.error(err);
-        el('resultPanel').innerHTML = `<div class="empty">
-          Gagal menarik data dari tab <b>${siteName}</b>.<br>${err.message}
-        </div>`;
-      }
-      return;
-    }
+    const cached = getCachedSite(siteName);
+    const hasCache = !!cached;
 
-    try{
-      const groups = await fetchSiteData(siteName);
-      renderSiteList(el('siteSearch').value); // update count badge
-      updateTriggerLabel();
-      const allRecords = Object.values(groups).flat();
-
-      if(!allRecords.length){
-        el('statRow').innerHTML = '';
-        el('staffPanel').innerHTML = '';
-        el('resultPanel').innerHTML = `<div class="empty"></div>`;
-        return;
-      }
-
-      renderStats(allRecords);
-      renderStaffPanel(allRecords);
-      let html = '';
-      const dateEntries = Object.entries(groups).filter(([, records]) => records.length).reverse();
-      dateEntries.forEach(([date, records], idx) => {
-        const isLatest = idx === 0;
-        html += `<div class="date-group log-group${isLatest ? ' open' : ''}">
-          <div class="date-head">${date}</div>
-          <table>
-            <thead class="col-head"><tr>
-              <th style="width:30%;">Nama / ID</th>
-              <th style="width:26%;">Link</th>
-              <th>Status</th>
-            </tr></thead>
-            <tbody>`;
-        records.forEach(r => {
-          const meta = statusMeta(r.status);
-          const linkHtml = r.link ? `<a href="${r.link}" target="_blank" rel="noopener" title="${r.link}">${r.link}</a>` : '—';
-          html += `<tr>
-            <td class="name" data-label="Nama / ID"><span class="name-txt" title="${r.name}">${r.name}</span></td>
-            <td class="link" data-label="Link">${linkHtml}</td>
-            <td data-label="Status"><span class="status-pill ${meta.cls}"><span class="dot"></span>${r.note}</span></td>
-          </tr>`;
-        });
-        html += `</tbody></table></div>`;
-      });
-      el('resultPanel').innerHTML = html || `<div class="empty">Tidak ada data untuk ditampilkan.</div>`;
-    } catch(err){
-      console.error(err);
+    if(!hasCache || !opts.silent){
       el('statRow').innerHTML = '';
       el('staffPanel').innerHTML = '';
-      el('resultPanel').innerHTML = `<div class="empty">
-        Gagal menarik data dari tab <b>${siteName}</b>.<br>${err.message}<br><br>
-        <span style="font-size:12px;">Pastikan nama tab di spreadsheet persis sama, sheet dapat diakses publik
-        ("Anyone with the link can view"), dan API key tidak dibatasi domain.</span>
-      </div>`;
+      el('staffPanel').classList.remove('open');
+      el('staffPanel').style.display = isReference ? 'none' : '';
+    }
+
+    // 1) Langsung tampilkan versi tersimpan (kalau ada) — INI yang bikin terasa instan.
+    if(hasCache){
+      SITE_DATA[siteName] = cached;
+      if(isReference){
+        el('resultPanel').innerHTML = renderReferenceList(cached, siteName, isStickyHeaderTab);
+      } else {
+        renderSiteResult(cached, siteName);
+      }
+    } else if(!opts.silent){
+      el('resultPanel').innerHTML = `<div class="empty"><div class="spin"></div>Menarik data dari tab "${siteName}"...</div>`;
+    }
+
+    // 2) Selalu tarik data terbaru dari spreadsheet di belakang layar, lalu update
+    //    tampilan kalau memang ada perubahan. Kalau belum ada cache sama sekali,
+    //    ini yang jadi tampilan pertama (sama seperti sebelumnya).
+    try{
+      const groups = isReference
+        ? await fetchReferenceData(siteName, { force: true })
+        : await fetchSiteData(siteName, { force: true });
+
+      if(activeSite !== siteName) return; // user sudah pindah tab sebelum fetch ini selesai
+      setLive(true);
+      if(isReference){
+        el('resultPanel').innerHTML = renderReferenceList(groups, siteName, isStickyHeaderTab);
+      } else {
+        renderSiteList(el('siteSearch').value); // update count badge
+        updateTriggerLabel();
+        renderSiteResult(groups, siteName);
+      }
+    } catch(err){
+      console.error(err);
+      setLive(false);
+      if(!hasCache){
+        el('statRow').innerHTML = '';
+        el('staffPanel').innerHTML = '';
+        el('resultPanel').innerHTML = `<div class="empty">
+          Gagal menarik data dari tab <b>${siteName}</b>.<br>${err.message}<br><br>
+          <span style="font-size:12px;">Pastikan nama tab di spreadsheet persis sama, sheet dapat diakses publik
+          ("Anyone with the link can view"), dan API key tidak dibatasi domain.</span>
+        </div>`;
+      }
+      // Kalau ada cache, biarkan versi cache tetap tampil — cuma titik "Live" jadi merah
+      // menandakan gagal sinkron, tanpa mengganggu data yang sudah kelihatan.
     }
   }
 
   async function init(){
-    try{
-      SHEET_TABS = await fetchSheetTabs();
-      if(!SHEET_TABS.length) throw new Error('Tidak ada tab ditemukan di spreadsheet ini');
-      setLive(true);
+    // 1) Kalau ada cache tersimpan, langsung tampilkan — tanpa nunggu network sama sekali.
+    if(CACHE.tabs && CACHE.tabs.length){
+      SHEET_TABS = CACHE.tabs;
       renderSiteList();
-      await selectSite(SHEET_TABS[0]);
+      const startSite = (CACHE.activeSite && SHEET_TABS.includes(CACHE.activeSite)) ? CACHE.activeSite : SHEET_TABS[0];
+      selectSite(startSite, { silent: true }); // tidak di-await: render cache instan, fetch jalan di belakang
+    }
+
+    // 2) Selalu ambil daftar tab terbaru dari spreadsheet di belakang layar.
+    try{
+      const tabs = await fetchSheetTabs();
+      if(!tabs.length) throw new Error('Tidak ada tab ditemukan di spreadsheet ini');
+      SHEET_TABS = tabs;
+      CACHE.tabs = tabs;
+      saveCache();
+      setLive(true);
+      renderSiteList(el('siteSearch').value);
+      const site = (activeSite && tabs.includes(activeSite)) ? activeSite : tabs[0];
+      if(!CACHE.activeSite || site !== activeSite){
+        await selectSite(site);
+      }
     } catch(err){
       console.error(err);
       setLive(false);
-      el('csTriggerLabel').textContent = 'Gagal memuat daftar tab';
-      el('csOptions').innerHTML = `<div class="cs-option empty">Gagal memuat daftar tab</div>`;
-      el('resultPanel').innerHTML = `<div class="empty">
-        Tidak bisa terhubung ke spreadsheet.<br><br>
-        <span style="font-size:12px;">Pastikan spreadsheet di-set "Anyone with the link can view",
-        dan API key aktif untuk Google Sheets API di Google Cloud Console.</span>
-      </div>`;
+      if(!CACHE.tabs || !CACHE.tabs.length){
+        el('csTriggerLabel').textContent = 'Gagal memuat daftar tab';
+        el('csOptions').innerHTML = `<div class="cs-option empty">Gagal memuat daftar tab</div>`;
+        el('resultPanel').innerHTML = `<div class="empty">
+          Tidak bisa terhubung ke spreadsheet.<br><br>
+          <span style="font-size:12px;">Pastikan spreadsheet di-set "Anyone with the link can view",
+          dan API key aktif untuk Google Sheets API di Google Cloud Console.</span>
+        </div>`;
+      }
+      // Kalau sudah ada cache tabs, biarkan sidebar dari cache tetap tampil apa adanya.
     }
   }
+
+  // Tombol "⟳" — paksa muat ulang total dari spreadsheet (lewati semua cache).
+  el('refreshBtn').addEventListener('click', async (e) => {
+    e.stopPropagation();
+    el('refreshBtn').style.opacity = '0.4';
+    SITE_DATA = {};
+    try{
+      const tabs = await fetchSheetTabs();
+      SHEET_TABS = tabs;
+      CACHE.tabs = tabs;
+      saveCache();
+      setLive(true);
+      renderSiteList(el('siteSearch').value);
+      const site = (activeSite && tabs.includes(activeSite)) ? activeSite : tabs[0];
+      await selectSite(site);
+    }catch(err){
+      console.error(err);
+      setLive(false);
+    }finally{
+      el('refreshBtn').style.opacity = '';
+    }
+  });
 
   el('siteSearch').addEventListener('input', e => renderSiteList(e.target.value));
   el('siteSearch').addEventListener('click', e => e.stopPropagation());
