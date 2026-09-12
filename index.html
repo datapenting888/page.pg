@@ -1702,7 +1702,7 @@
     <div id="pageDataScreenshot"> di bawah). Data disimpan real-time di
     Firebase Realtime Database (path "dataScreenshot"), sehingga tersinkron
     otomatis antar perangkat/browser, dan otomatis terhapus sendiri setelah
-    3 hari (gambarnya sendiri disimpan di ImgBB dengan masa berlaku 3 hari juga).
+    3 minggu.
   -->
   <div class="nav-item" id="navDataScreenshot">
     <span class="icon">
@@ -5512,15 +5512,7 @@ function tampilkanErrorFirebase(pesan) {
   box._hideTimer = setTimeout(() => { box.style.display = 'none'; }, 6000);
 }
 
-// Dengarkan perubahan data Jadwal Pasaran & Shio dari Firebase secara
-// REAL-TIME (bukan polling berkala). Ini justru pilihan yang paling hemat
-// kuota untuk data ini: listener on('value') TIDAK menarik data terus-
-// menerus — ia hanya "diam" menunggu, dan baru benar-benar mengirim data
-// TEPAT SAAT ada perubahan Jam Tutup, Result, atau Shio yang disimpan
-// (dari perangkat manapun). Kalau tidak ada perubahan sama sekali, tidak
-// ada data yang ditransfer sama sekali. Ini lebih hemat dibanding polling
-// berkala (mis. tiap 24 jam), karena polling tetap menarik data walau
-// tidak ada perubahan apa-apa.
+// Dengarkan perubahan data secara real-time dari Firebase (mis. disimpan dari perangkat lain)
 if (hasilDB) {
   hasilDB.ref('resultJadwalPasaran/jadwal').on('value', (snapshot) => {
     const data = snapshot.val();
@@ -5787,7 +5779,7 @@ setInterval(() => {
   (path "dataScreenshot", pakai firebaseConfig yang sama dengan menu
   "Result & Jadwal Pasaran"), sehingga otomatis tersinkron ke semua
   perangkat/browser yang membuka menu ini, dan otomatis terhapus sendiri
-  setelah 3 hari. Style-nya dibuat senada dengan menu "PERHITUNGAN BOLA
+  setelah 3 minggu. Style-nya dibuat senada dengan menu "PERHITUNGAN BOLA
   PNG" (nuansa gelap + aksen emas), lihat class ".ds-scope" di bawah.
 -->
 <div id="pageDataScreenshot" style="display:none;">
@@ -5810,7 +5802,7 @@ setInterval(() => {
                         <b>Informasi Penggunaan:</b>
                         <ul>
                             <li>Input nomor rekening dan gambar maka akan tersimpan secara otomatis.</li>
-                            <li>Data yang sudah di input akan terhapus secara otomatis setelah 3 x 24 jam (3 hari).</li>
+                            <li>Data yang sudah di input akan terhapus secara otomatis jika sudah 3 x 24 (selama 3 minggu).</li>
                             <li>Untuk melakukan pengecekan data/gambar yang sudah di simpan (Tanggal Semalam), atur dulu tanggal atau dapat gunakan menu cari.</li>
                             <li>Klik tautan, langsung tekan ctrl+v pada keyboard maka dapat di klik unggah, kemudian salin linknya dan tempel pada kolom tautannya.</li>
                         </ul>
@@ -6357,57 +6349,12 @@ setInterval(() => {
     // Pasaran" (firebaseConfig & firebase.initializeApp sudah dijalankan
     // di sana, di sini kita cukup panggil firebase.database() lagi).
     // Data disinkron real-time lewat listener child_added/child_changed/
-    // child_removed, dan baris yang timestamp-nya sudah lebih dari 3 hari
-    // otomatis dihapus dari Firebase saat menu ini dibuka.
+    // child_removed, dan baris yang timestamp-nya sudah lebih dari 21 hari
+    // (3 minggu) otomatis dihapus dari Firebase saat menu ini dibuka.
     // -----------------------------------------------------------------
     const dsBankList = ["DANA", "OVO", "GOPAY", "LINKAJA", "BCA", "BRI", "BNI", "MANDIRI", "JAGO", "MAYBANK", "BSI", "CIMB", "DANAMON", "SEABANK"];
     const DS_FB_PATH = 'dataScreenshot';
-    const DS_EXPIRY_MS = 3 * 24 * 60 * 60 * 1000; // 3 hari (retensi baris data rekening di Firebase, disamakan dengan masa berlaku gambar di ImgBB)
-
-    // -----------------------------------------------------------------
-    // GAMBAR SCREENSHOT TIDAK LAGI DISIMPAN KE FIREBASE.
-    // Sebelumnya setiap screenshot (base64, bisa ratusan KB) disimpan
-    // langsung di node Firebase Realtime Database, lalu ikut ter-download
-    // ulang oleh SEMUA perangkat yang membuka menu ini lewat listener
-    // real-time -> inilah penyebab boros kuota/limit tercepat di dashboard
-    // ini. Sekarang, gambar diunggah ke ImgBB (hosting gambar pihak ketiga)
-    // dengan masa berlaku (expiration) 3 hari -> ImgBB akan MENGHAPUS
-    // gambarnya sendiri secara otomatis setelah 3 hari. Yang disimpan ke
-    // Firebase hanya TAUTAN (URL) hasil unggahan tsb, ukurannya cuma
-    // puluhan byte, bukan ratusan KB.
-    //
-    // WAJIB DIISI: daftar API key gratis di https://api.imgbb.com/ lalu
-    // tempel di bawah ini.
-    // -----------------------------------------------------------------
-    const IMGBB_API_KEY = 'GANTI_DENGAN_API_KEY_IMGBB_ANDA';
-    const DS_IMG_EXPIRATION_SECONDS = 3 * 24 * 60 * 60; // 3 hari, otomatis dihapus oleh ImgBB
-
-    // Upload gambar (data URL base64) ke ImgBB dengan masa berlaku 3 hari.
-    // Mengembalikan URL gambar hasil unggahan (string), lempar Error jika gagal.
-    async function dsUploadToImgbb(dataUrl) {
-        if (!IMGBB_API_KEY || IMGBB_API_KEY === 'GANTI_DENGAN_API_KEY_IMGBB_ANDA') {
-            throw new Error('API key ImgBB belum diisi. Daftar gratis di https://api.imgbb.com/ lalu isi IMGBB_API_KEY di kode.');
-        }
-        // dataUrl formatnya "data:image/jpeg;base64,XXXXX" — ImgBB cukup
-        // butuh bagian base64-nya saja (setelah koma).
-        const base64Only = dataUrl.split(',')[1] || dataUrl;
-
-        const form = new FormData();
-        form.append('key', IMGBB_API_KEY);
-        form.append('image', base64Only);
-        form.append('expiration', String(DS_IMG_EXPIRATION_SECONDS));
-
-        const res = await fetch('https://api.imgbb.com/1/upload', {
-            method: 'POST',
-            body: form
-        });
-        const json = await res.json();
-        if (!json || !json.success || !json.data || !json.data.url) {
-            const msg = (json && json.error && json.error.message) ? json.error.message : 'Respons ImgBB tidak valid.';
-            throw new Error(msg);
-        }
-        return json.data.url;
-    }
+    const DS_EXPIRY_MS = 21 * 24 * 60 * 60 * 1000; // 3 minggu
 
     let dsDB = null;
 
@@ -6474,11 +6421,14 @@ setInterval(() => {
     // blok script menu "Result & Jadwal Pasaran", jadi TIDAK dipanggil lagi
     // di sini supaya tidak error "Firebase App named '[DEFAULT]' already
     // exists").
+    let dsInitRetryCount = 0;
+    const DS_INIT_MAX_RETRY = 10;
+
     function dsInitFirebase() {
         if (typeof firebase === 'undefined') {
             console.error('[Firebase] SDK belum dimuat untuk DATA SCREENSHOT.');
-            dsShowToast('⚠ Firebase belum termuat. Cek koneksi internet Anda, lalu muat ulang halaman.', 8000);
             dsEnsureDraftRow();
+            dsScheduleInitRetry('SDK Firebase belum termuat (cek koneksi internet / ad-blocker)');
             return;
         }
 
@@ -6486,22 +6436,16 @@ setInterval(() => {
             dsDB = firebase.database();
         } catch (e) {
             console.error('[Firebase] Gagal menghubungkan DATA SCREENSHOT ke Firebase:', e);
-            dsShowToast('⚠ Gagal terhubung ke Firebase: ' + (e && e.message ? e.message : String(e)), 8000);
+            dsDB = null;
             dsEnsureDraftRow();
+            dsScheduleInitRetry(e && e.message ? e.message : String(e));
             return;
         }
 
+        dsInitRetryCount = 0;
         dsCleanupExpired();
 
-        // Batasi Ruang Lingkup Data (Query Limiting): hanya menyimak
-        // DS_QUERY_LIMIT baris PALING BARU (berdasarkan timestamp), bukan
-        // seluruh riwayat "dataScreenshot" sekaligus. Listener di sini
-        // bersifat real-time, jadi tanpa limitToLast() setiap kali menu ini
-        // dibuka semua baris (termasuk yang belum kena hapus otomatis 3
-        // hari) akan ikut ter-download ulang — padahal yang benar-benar
-        // dibutuhkan biasanya cuma baris terbaru.
-        const DS_QUERY_LIMIT = 300;
-        const ref = dsDB.ref(DS_FB_PATH).orderByChild('timestamp').limitToLast(DS_QUERY_LIMIT);
+        const ref = dsDB.ref(DS_FB_PATH).orderByChild('timestamp');
         ref.on('child_added', (snap) => dsUpsertRowFromSnapshot(snap.key, snap.val()));
         ref.on('child_changed', (snap) => dsUpsertRowFromSnapshot(snap.key, snap.val()));
         ref.on('child_removed', (snap) => dsRemoveRowByKey(snap.key));
@@ -6509,8 +6453,27 @@ setInterval(() => {
         dsEnsureDraftRow();
     }
 
+    // Jika koneksi Firebase gagal saat menu ini pertama dibuka (mis.
+    // internet lambat/putus sesaat), JANGAN menyerah — coba lagi otomatis
+    // tiap beberapa detik sampai berhasil, tanpa perlu user reload manual.
+    // Data yang sudah diketik/ditempel di baris draft tetap aman selama
+    // ini karena dsTrySaveDraftRow() akan tetap menahan data sampai dsDB
+    // benar-benar siap.
+    function dsScheduleInitRetry(reason) {
+        if (dsDB) return; // sudah tersambung lewat jalur lain, tidak perlu retry
+        dsInitRetryCount++;
+        if (dsInitRetryCount === 1) {
+            dsShowToast('⚠ Firebase belum terhubung (' + reason + '). Mencoba menyambung ulang otomatis...', 6000);
+        }
+        if (dsInitRetryCount > DS_INIT_MAX_RETRY) {
+            dsShowToast('⚠ Masih gagal terhubung ke Firebase setelah beberapa kali percobaan. Cek koneksi internet Anda, lalu muat ulang halaman.', 10000);
+            return;
+        }
+        setTimeout(dsInitFirebase, 3000);
+    }
+
     // Hapus dari Firebase baris-baris yang timestamp-nya sudah lebih dari
-    // 3 hari. Dipanggil sekali tiap kali menu DATA SCREENSHOT
+    // 3 minggu (21 hari). Dipanggil sekali tiap kali menu DATA SCREENSHOT
     // dibuka; siapapun yang membuka menu ini akan otomatis memicu
     // pembersihan data kadaluarsa untuk semua pengguna (real-time).
     function dsCleanupExpired() {
@@ -6851,41 +6814,6 @@ setInterval(() => {
         window.open(finalUrl, '_blank', 'noopener');
     }
 
-    // Kompres gambar screenshot di browser SEBELUM disimpan ke Firebase.
-    // Ini penyebab boros kuota TERBESAR di dashboard ini: setiap screenshot
-    // yang ditempel disimpan utuh sebagai base64 langsung di dalam node
-    // Realtime Database (bisa 1-3MB per gambar dari clipboard), dan listener
-    // real-time di menu DATA SCREENSHOT membuat gambar itu ikut ter-download
-    // ULANG oleh SETIAP perangkat yang membuka menu ini. Dikompres jadi
-    // JPEG + dikecilkan lebar maksimalnya membuat ukurannya turun drastis
-    // (biasanya jadi puluhan-ratusan KB saja) tanpa mengurangi keterbacaan
-    // screenshot bukti transfer.
-    function dsCompressImage(dataUrl, maxWidth = 1000, quality = 0.6) {
-        return new Promise((resolve) => {
-            const img = new Image();
-            img.onload = function() {
-                let width = img.width;
-                let height = img.height;
-                if (width > maxWidth) {
-                    height = Math.round(height * (maxWidth / width));
-                    width = maxWidth;
-                }
-                const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-                resolve(canvas.toDataURL('image/jpeg', quality));
-            };
-            img.onerror = function() {
-                // Kalau gagal dikompres, pakai data aslinya apa adanya
-                // daripada gagal total menyimpan screenshot.
-                resolve(dataUrl);
-            };
-            img.src = dataUrl;
-        });
-    }
-
     function dsHandlePaste(event, pasteArea) {
         const items = (event.clipboardData || event.originalEvent.clipboardData).items;
         for (let i = 0; i < items.length; i++) {
@@ -6893,9 +6821,7 @@ setInterval(() => {
                 const blob = items[i].getAsFile();
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    dsCompressImage(e.target.result).then((compressed) => {
-                        dsProcessImageInput(pasteArea, compressed);
-                    });
+                    dsProcessImageInput(pasteArea, e.target.result);
                 };
                 reader.readAsDataURL(blob);
                 event.preventDefault();
@@ -6933,74 +6859,75 @@ setInterval(() => {
     // lengkap: nomor rekening terisi DAN screenshot sudah ditempel. Jika
     // salah satu masih kosong, fungsi ini berhenti diam-diam dan menunggu
     // input berikutnya (dipanggil ulang dari dsProcessImageInput / dsHandleRekInput).
-    //
-    // Gambarnya sendiri TIDAK dikirim ke Firebase. Sebelum menyimpan, gambar
-    // diunggah dulu ke ImgBB (masa berlaku 3 hari, lihat dsUploadToImgbb),
-    // dan hanya URL hasil unggahan itu yang disimpan ke Firebase.
-    async function dsTrySaveDraftRow(row) {
+    // Syarat WAJIB untuk auto-save HANYA dua: NOMOR REKENING (bukan
+    // placeholder) dan SCREENSHOT sudah ditempel. Kolom JENIS/bank
+    // TIDAK wajib — boleh dibiarkan "-" dan tidak akan menghalangi
+    // penyimpanan. Jangan tambahkan jenisSelect ke dalam syarat di bawah.
+    function dsTrySaveDraftRow(row) {
         const rekInput = row.querySelector('.ds-row-rek');
         const jenisSelect = row.querySelector('.ds-row-jenis');
         const dateInput = row.querySelector('.ds-row-date');
+        const pasteArea = row.querySelector('.ds-paste-area');
         const dataUrl = row.dataset.dsPendingImg;
 
         const rekFilled = rekInput.value.trim() !== "" && rekInput.value !== "NO REKENING";
+
+        // Beri tahu user secara eksplisit kalau salah satu data wajib
+        // belum lengkap, supaya "belum tersimpan" tidak terlihat seperti
+        // bug padahal cuma menunggu data satunya diisi.
         if (!rekFilled || !dataUrl) {
+            if (dataUrl && !rekFilled) {
+                dsShowToast('✏️ Screenshot sudah ditempel — isi dulu NOMOR REKENING supaya tersimpan otomatis.', 4000);
+            } else if (!dataUrl && rekFilled) {
+                dsShowToast('📎 Nomor rekening sudah diisi — tempel dulu SCREENSHOT-nya (Ctrl+V) supaya tersimpan otomatis.', 4000);
+            }
             return;
         }
 
-        // Cegah upload/simpan ganda kalau fungsi ini terpanggil beberapa
-        // kali beruntun (mis. tiap ketukan tombol saat mengisi rekening)
-        // selagi upload sebelumnya masih berjalan.
-        if (row.dataset.dsSaving === '1') {
+        // Cegah pemicu ganda (mis. ketikan cepat pada kolom rekening
+        // memicu oninput berkali-kali) selagi penyimpanan sebelumnya
+        // masih berjalan pada baris yang sama.
+        if (row.dataset.dsSaving === "1") {
             return;
         }
-        row.dataset.dsSaving = '1';
 
         if (!dsDB) {
-            alert("Firebase belum terhubung, data tidak dapat disimpan. Cek koneksi internet Anda lalu muat ulang halaman.");
-            delete row.dataset.dsSaving;
+            dsShowToast('⚠ Firebase belum terhubung. Data BELUM tersimpan — coba lagi sebentar setelah koneksi pulih (jangan tutup/reload halaman dulu).', 8000);
             return;
         }
 
-        dsShowToast('⏳ Mengunggah screenshot (tersimpan 3 hari)...', 15000);
-
-        let uploadedUrl;
-        try {
-            uploadedUrl = await dsUploadToImgbb(dataUrl);
-        } catch (err) {
-            console.error('[ImgBB] Gagal mengunggah screenshot:', err);
-            dsShowToast('⚠ Gagal mengunggah screenshot: ' + (err && err.message ? err.message : String(err)) + ' — data belum tersimpan, silakan coba lagi.', 10000);
-            delete row.dataset.dsSaving;
-            return;
-        }
+        row.dataset.dsSaving = "1";
+        if (pasteArea) pasteArea.style.opacity = "0.5";
 
         const dataToSave = {
             date: dateInput.value,
             rek: rekInput.value,
             jenis: jenisSelect.value,
-            imgUrl: uploadedUrl,
+            imgUrl: dataUrl,
             link: "",
             timestamp: Date.now()
         };
 
-        try {
-            await dsDB.ref(DS_FB_PATH).push(dataToSave);
-        } catch (err) {
-            console.error('[Firebase] Gagal menyimpan screenshot:', err);
-            dsShowToast('⚠ Gagal menyimpan ke Firebase: ' + (err && err.message ? err.message : String(err)));
+        dsDB.ref(DS_FB_PATH).push(dataToSave).then(() => {
+            // Baris "terkunci" (locked) untuk entri ini akan otomatis
+            // muncul di atas baris draft lewat listener child_added
+            // (real-time). Baris draft ini sendiri BARU direset ke
+            // kondisi kosong SETELAH Firebase benar-benar mengonfirmasi
+            // data tersimpan — supaya tidak ada data yang hilang kalau
+            // penyimpanan gagal di tengah jalan.
+            delete row.dataset.dsPendingImg;
             delete row.dataset.dsSaving;
-            return;
-        }
-
-        delete row.dataset.dsPendingImg;
-        delete row.dataset.dsSaving;
-        dsShowToast('✅ Screenshot tersimpan (otomatis terhapus setelah 3 hari).', 4000);
-
-        // Baris "terkunci" (locked) untuk entri ini akan otomatis muncul di
-        // atas baris draft lewat listener child_added (real-time). Baris
-        // draft ini sendiri di-reset ke kondisi kosong supaya siap dipakai
-        // untuk input entri berikutnya, tanpa membuat baris draft ganda.
-        dsResetDraftRow(row);
+            dsResetDraftRow(row);
+        }).catch((err) => {
+            console.error('[Firebase] Gagal menyimpan screenshot:', err);
+            delete row.dataset.dsSaving;
+            if (pasteArea) pasteArea.style.opacity = "";
+            dsShowToast('⚠ Gagal menyimpan ke Firebase: ' + (err && err.message ? err.message : String(err)) + ' — data belum hilang, sedang dicoba ulang otomatis.', 8000);
+            // Data (rekening & screenshot) SENGAJA tidak dihapus dari
+            // baris draft supaya tidak hilang. Coba simpan ulang secara
+            // otomatis setelah jeda singkat.
+            setTimeout(() => dsTrySaveDraftRow(row), 4000);
+        });
     }
 
     function dsResetDraftRow(row) {
