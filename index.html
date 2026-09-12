@@ -1697,12 +1697,15 @@
   </div>
 
   <!--
-    Menu "DATA SCREENSHOT" — galeri untuk menyimpan & melihat screenshot
-    (bukti taruhan/hasil, dll) langsung di dalam dashboard (lihat
-    <div id="pageDataScreenshot"> di bawah). Data disimpan real-time di
-    Firebase Realtime Database (path "dataScreenshot"), sehingga tersinkron
-    otomatis antar perangkat/browser, dan otomatis terhapus sendiri setelah
-    3 minggu.
+    Menu "DATA SCREENSHOT" — galeri untuk menyimpan & melihat data rekening
+    & tautan screenshot (bukti taruhan/hasil, dll) langsung di dalam
+    dashboard (lihat <div id="pageDataScreenshot"> di bawah). Data teks
+    (tanggal/rekening/jenis/tautan) disimpan real-time di Firebase Realtime
+    Database (path "dataScreenshot"), sehingga tersinkron otomatis antar
+    perangkat/browser, dan otomatis terhapus sendiri setelah 3 minggu.
+    Gambar screenshot-nya SENGAJA TIDAK ikut disimpan ke Firebase (supaya
+    tidak cepat kena limit bulanan) — pengguna diminta upload manual ke
+    imgbb.com lalu tempel tautannya.
   -->
   <div class="nav-item" id="navDataScreenshot">
     <span class="icon">
@@ -5775,12 +5778,20 @@ setInterval(() => {
 
 <!--
   Halaman "DATA SCREENSHOT" — tabel data rekening & bukti screenshot
-  transaksi. Setiap baris tersimpan REAL-TIME di Firebase Realtime Database
-  (path "dataScreenshot", pakai firebaseConfig yang sama dengan menu
-  "Result & Jadwal Pasaran"), sehingga otomatis tersinkron ke semua
-  perangkat/browser yang membuka menu ini, dan otomatis terhapus sendiri
-  setelah 3 minggu. Style-nya dibuat senada dengan menu "PERHITUNGAN BOLA
-  PNG" (nuansa gelap + aksen emas), lihat class ".ds-scope" di bawah.
+  transaksi. Data TEKS setiap baris (tanggal/rekening/jenis/tautan)
+  tersimpan REAL-TIME di Firebase Realtime Database (path "dataScreenshot",
+  pakai firebaseConfig yang sama dengan menu "Result & Jadwal Pasaran"),
+  sehingga otomatis tersinkron ke semua perangkat/browser yang membuka menu
+  ini, dan otomatis terhapus sendiri setelah 3 minggu. Gambar screenshot-nya
+  SENGAJA TIDAK ikut disimpan ke Firebase (supaya tidak cepat kena limit
+  bulanan) — alurnya: paste screenshot → klik tombol salin & buka
+  imgbb.com → upload manual di imgbb.com → tempel tautan hasil upload di
+  kolom TAUTAN (baru tautan ini yang tersimpan ke Firebase). Pratinjau
+  gambar hanya bertahan di memori browser selama sesi berjalan (lihat
+  dsLocalImages di script di bawah), jadi kalau halaman dimuat ulang
+  sebelum tautan ditempel, screenshot-nya perlu ditempel ulang. Style-nya
+  dibuat senada dengan menu "PERHITUNGAN BOLA PNG" (nuansa gelap + aksen
+  emas), lihat class ".ds-scope" di bawah.
 -->
 <div id="pageDataScreenshot" style="display:none;">
   <div class="topbar">
@@ -6351,12 +6362,31 @@ setInterval(() => {
     // Data disinkron real-time lewat listener child_added/child_changed/
     // child_removed, dan baris yang timestamp-nya sudah lebih dari 21 hari
     // (3 minggu) otomatis dihapus dari Firebase saat menu ini dibuka.
+    //
+    // PENTING: gambar screenshot (base64) SENGAJA TIDAK PERNAH dikirim ke
+    // Firebase — yang tersimpan di sana cuma teks (date/rek/jenis/link/
+    // timestamp), supaya tidak cepat kena limit bulanan Firebase. Gambar
+    // hasil paste cuma disimpan sesaat di memori browser (lihat
+    // dsLocalImages) untuk keperluan tombol "salin screenshot & buka
+    // imgbb.com"; yang benar-benar tersimpan permanen ke Firebase hanyalah
+    // TAUTAN hasil upload manual ke imgbb.com.
     // -----------------------------------------------------------------
     const dsBankList = ["DANA", "OVO", "GOPAY", "LINKAJA", "BCA", "BRI", "BNI", "MANDIRI", "JAGO", "MAYBANK", "BSI", "CIMB", "DANAMON", "SEABANK"];
     const DS_FB_PATH = 'dataScreenshot';
     const DS_EXPIRY_MS = 21 * 24 * 60 * 60 * 1000; // 3 minggu
 
     let dsDB = null;
+
+    // Cache gambar screenshot HANYA di memori browser (tab ini), key =
+    // Firebase push key. Gambar sengaja TIDAK PERNAH dikirim/disimpan ke
+    // Firebase lagi (supaya tidak cepat kena limit bulanan) — cache ini
+    // cuma dipakai supaya pratinjau screenshot tetap terlihat sesaat
+    // setelah baris tersimpan, untuk keperluan tombol "salin screenshot &
+    // buka imgbb.com". Konsekuensinya: pratinjau ini HILANG kalau halaman
+    // dimuat ulang atau dibuka di perangkat/browser lain — hanya kolom
+    // TAUTAN (link hasil upload manual ke imgbb.com) yang tetap tersinkron
+    // permanen lewat Firebase.
+    const dsLocalImages = {};
 
     // Kunci tanggal (format yyyy-mm-dd) yang dipakai untuk mendeteksi
     // pergantian hari secara otomatis selagi halaman tetap terbuka
@@ -6511,7 +6541,11 @@ setInterval(() => {
         const tbody = document.getElementById('dsTableBody');
         if (!tbody) return;
         const existing = tbody.querySelector(`tr[data-fb-key="${CSS.escape(key)}"]`);
-        const built = dsAddRow(data.date, data.rek, data.jenis, data.imgUrl, true, data.timestamp, data.link || "", key, false);
+        // data.imgUrl TIDAK LAGI ada di Firebase (lihat dsTrySaveDraftRow) —
+        // pratinjau gambar cuma diambil dari cache lokal browser ini, kalau
+        // masih ada (lihat komentar dsLocalImages di atas).
+        const localImg = dsLocalImages[key] || "";
+        const built = dsAddRow(data.date, data.rek, data.jenis, localImg, true, data.timestamp, data.link || "", key, false);
         if (existing) {
             existing.replaceWith(built);
         } else {
@@ -6713,7 +6747,9 @@ setInterval(() => {
                 <div class="ds-paste-area" tabindex="0" onpaste="dsHandlePaste(event, this)" title="Klik lalu tekan Ctrl+V untuk paste gambar" ${isLocked ? 'style="border:none; background:transparent;"' : ''}>
                     ${isLocked && imgDataUrl ?
                         `<img src="${imgDataUrl}" class="ds-preview-img" title="Klik untuk memperbesar gambar" onclick="dsOpenModal('${imgDataUrl}')">` :
-                        `<span style="font-size:11px; color:var(--ds-text-muted);">Paste ( Ctrl+V )</span>`
+                        isLocked ?
+                            `<span style="font-size:11px; color:var(--ds-text-muted);">— (tidak tersimpan)</span>` :
+                            `<span style="font-size:11px; color:var(--ds-text-muted);">Paste ( Ctrl+V )</span>`
                     }
                 </div>
             </td>
@@ -6899,16 +6935,26 @@ setInterval(() => {
         row.dataset.dsSaving = "1";
         if (pasteArea) pasteArea.style.opacity = "0.5";
 
+        // PENTING: field "imgUrl" (base64 screenshot) SENGAJA TIDAK
+        // dikirim ke Firebase lagi — supaya data yang tersimpan di
+        // Firebase cuma teks (date/rek/jenis/link/timestamp) dan tidak
+        // cepat kena limit bulanan. Gambar base64-nya cuma disimpan
+        // sesaat di cache lokal browser ini (dsLocalImages), dikunci ke
+        // Firebase push key, supaya tombol "salin screenshot & buka
+        // imgbb.com" pada kolom TAUTAN tetap bisa dipakai selama sesi
+        // ini masih berjalan.
         const dataToSave = {
             date: dateInput.value,
             rek: rekInput.value,
             jenis: jenisSelect.value,
-            imgUrl: dataUrl,
             link: "",
             timestamp: Date.now()
         };
 
-        dsDB.ref(DS_FB_PATH).push(dataToSave).then(() => {
+        const newRef = dsDB.ref(DS_FB_PATH).push();
+        dsLocalImages[newRef.key] = dataUrl;
+
+        newRef.set(dataToSave).then(() => {
             // Baris "terkunci" (locked) untuk entri ini akan otomatis
             // muncul di atas baris draft lewat listener child_added
             // (real-time). Baris draft ini sendiri BARU direset ke
@@ -6920,6 +6966,7 @@ setInterval(() => {
             dsResetDraftRow(row);
         }).catch((err) => {
             console.error('[Firebase] Gagal menyimpan screenshot:', err);
+            delete dsLocalImages[newRef.key];
             delete row.dataset.dsSaving;
             if (pasteArea) pasteArea.style.opacity = "";
             dsShowToast('⚠ Gagal menyimpan ke Firebase: ' + (err && err.message ? err.message : String(err)) + ' — data belum hilang, sedang dicoba ulang otomatis.', 8000);
