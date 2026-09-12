@@ -1429,7 +1429,7 @@
     border: 1px solid var(--ds-border);
 }
 
-.ds-scope .ds-link-cell {
+.ds-scope .ds-screenshot-cell {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -5784,9 +5784,11 @@ setInterval(() => {
   sehingga otomatis tersinkron ke semua perangkat/browser yang membuka menu
   ini, dan otomatis terhapus sendiri setelah 3 minggu. Gambar screenshot-nya
   SENGAJA TIDAK ikut disimpan ke Firebase (supaya tidak cepat kena limit
-  bulanan) — alurnya: paste screenshot → klik tombol salin & buka
-  imgbb.com → upload manual di imgbb.com → tempel tautan hasil upload di
-  kolom TAUTAN (baru tautan ini yang tersimpan ke Firebase). Pratinjau
+  bulanan) — alurnya: paste screenshot pada kolom SCREENSHOT → klik ikon
+  upload yang muncul di kolom itu (salin gambar & buka imgbb.com) → upload
+  manual di imgbb.com → tempel tautan hasil upload kembali di kolom
+  SCREENSHOT yang sama (baru tautan ini yang tersimpan ke Firebase, kolom
+  TAUTAN terpisah sudah dihapus). Pratinjau
   gambar hanya bertahan di memori browser selama sesi berjalan (lihat
   dsLocalImages di script di bawah), jadi kalau halaman dimuat ulang
   sebelum tautan ditempel, screenshot-nya perlu ditempel ulang. Style-nya
@@ -5815,7 +5817,7 @@ setInterval(() => {
                             <li>Input nomor rekening dan gambar maka akan tersimpan secara otomatis.</li>
                             <li>Data yang sudah di input akan terhapus secara otomatis jika sudah 3 x 24 (selama 3 minggu).</li>
                             <li>Untuk melakukan pengecekan data/gambar yang sudah di simpan (Tanggal Semalam), atur dulu tanggal atau dapat gunakan menu cari.</li>
-                            <li>Klik tautan, langsung tekan ctrl+v pada keyboard maka dapat di klik unggah, kemudian salin linknya dan tempel pada kolom tautannya.</li>
+                            <li>Klik ikon di kolom SCREENSHOT (muncul setelah gambar ditempel), langsung tekan ctrl+v pada keyboard maka dapat di klik unggah, kemudian salin linknya dan tempel pada kolom yang sama.</li>
                         </ul>
                     </div>
                 </div>
@@ -5840,8 +5842,7 @@ setInterval(() => {
                       <th style="width: 14%;">TANGGAL</th>
                       <th style="width: 22%;">NOMOR REKENING</th>
                       <th style="width: 16%;">JENIS</th>
-                      <th style="width: 20%;">SCREENSHOT</th>
-                      <th style="width: 28%;">TAUTAN</th>
+                      <th style="width: 48%;">SCREENSHOT</th>
                   </tr>
               </thead>
               <tbody id="dsTableBody">
@@ -6686,9 +6687,23 @@ setInterval(() => {
 
     const dsOpenLinkIconSvg = `<svg viewBox="0 0 24 24"><path d="M14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7zM5 5h5V3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-5h-2v5H5V5z"/></svg>`;
 
-    function dsBuildLinkCellHtml(isLocked, linkVal) {
+    // Membangun isi SATU kolom "SCREENSHOT" yang sekarang menggabungkan
+    // pratinjau gambar sekaligus proses upload & tautan (kolom TAUTAN
+    // yang dulu terpisah sudah dihapus). State-nya:
+    // 1) Baris draft (belum terkunci): kotak "Paste ( Ctrl+V )".
+    // 2) Terkunci + sudah ada tautan tersimpan: tampilkan tautannya saja.
+    // 3) Terkunci + belum ada tautan tapi gambar masih ada di cache lokal
+    //    (dsLocalImages): tampilkan thumbnail + tombol "salin & buka
+    //    imgbb.com" untuk mulai proses upload.
+    // 4) Terkunci + belum ada tautan + gambar sudah tidak ada di cache
+    //    lokal (mis. halaman sudah dimuat ulang): tampilkan "tidak
+    //    tersimpan" saja, tanpa tombol (tidak ada apa pun untuk diunggah).
+    function dsBuildScreenshotCellHtml(isLocked, imgDataUrl, linkVal) {
         if (!isLocked) {
-            return `<span class="link-placeholder">-</span>`;
+            return `
+                <div class="ds-paste-area" tabindex="0" onpaste="dsHandlePaste(event, this)" title="Klik lalu tekan Ctrl+V untuk paste gambar">
+                    <span style="font-size:11px; color:var(--ds-text-muted);">Paste ( Ctrl+V )</span>
+                </div>`;
         }
         if (linkVal) {
             return `
@@ -6697,10 +6712,14 @@ setInterval(() => {
                     ${dsOpenLinkIconSvg}
                 </button>`;
         }
-        return `
-            <button type="button" class="ds-open-link-btn ds-copy-open-btn" onclick="dsHandleCopyAndOpen(this)" title="Salin screenshot & buka imgbb.com">
-                ${dsOpenLinkIconSvg}
-            </button>`;
+        if (imgDataUrl) {
+            return `
+                <img src="${imgDataUrl}" class="ds-preview-img" title="Klik untuk memperbesar gambar" onclick="dsOpenModal('${imgDataUrl}')">
+                <button type="button" class="ds-open-link-btn ds-copy-open-btn" onclick="dsHandleCopyAndOpen(this)" title="Salin screenshot & buka imgbb.com">
+                    ${dsOpenLinkIconSvg}
+                </button>`;
+        }
+        return `<span class="link-placeholder">— (tidak tersimpan)</span>`;
     }
 
     function dsBuildEditableLinkInputHtml() {
@@ -6744,18 +6763,8 @@ setInterval(() => {
                 </select>
             </td>
             <td>
-                <div class="ds-paste-area" tabindex="0" onpaste="dsHandlePaste(event, this)" title="Klik lalu tekan Ctrl+V untuk paste gambar" ${isLocked ? 'style="border:none; background:transparent;"' : ''}>
-                    ${isLocked && imgDataUrl ?
-                        `<img src="${imgDataUrl}" class="ds-preview-img" title="Klik untuk memperbesar gambar" onclick="dsOpenModal('${imgDataUrl}')">` :
-                        isLocked ?
-                            `<span style="font-size:11px; color:var(--ds-text-muted);">— (tidak tersimpan)</span>` :
-                            `<span style="font-size:11px; color:var(--ds-text-muted);">Paste ( Ctrl+V )</span>`
-                    }
-                </div>
-            </td>
-            <td>
-                <div class="ds-link-cell">
-                    ${dsBuildLinkCellHtml(isLocked, linkVal)}
+                <div class="ds-screenshot-cell">
+                    ${dsBuildScreenshotCellHtml(isLocked, imgDataUrl, linkVal)}
                 </div>
             </td>
         `;
@@ -6797,7 +6806,7 @@ setInterval(() => {
         }
 
         window.open('https://imgbb.com/', '_blank', 'noopener');
-        dsShowToast("<b>Langkah selanjutnya:</b> di tab imgbb.com, klik UNGGAH lalu klik SALIN pada tautan yang muncul. Setelah tersalin, tutup tab tersebut lalu kembali ke sini dan tempel tautannya di kolom TAUTAN pada baris ini.", 60000);
+        dsShowToast("<b>Langkah selanjutnya:</b> di tab imgbb.com, klik UNGGAH lalu klik SALIN pada tautan yang muncul. Setelah tersalin, tutup tab tersebut lalu kembali ke sini dan tempel tautannya di kolom SCREENSHOT pada baris ini.", 60000);
         return true;
     }
 
@@ -6808,10 +6817,10 @@ setInterval(() => {
             return;
         }
 
-        const linkCell = row.querySelector('.ds-link-cell');
-        linkCell.innerHTML = dsBuildEditableLinkInputHtml();
+        const screenshotCell = row.querySelector('.ds-screenshot-cell');
+        screenshotCell.innerHTML = dsBuildEditableLinkInputHtml();
 
-        const newInput = linkCell.querySelector('.ds-row-link');
+        const newInput = screenshotCell.querySelector('.ds-row-link');
         if (newInput) {
             newInput.focus();
         }
@@ -6982,14 +6991,12 @@ setInterval(() => {
         const jenisSelect = row.querySelector('.ds-row-jenis');
         const dateInput = row.querySelector('.ds-row-date');
         const pasteArea = row.querySelector('.ds-paste-area');
-        const linkCell = row.querySelector('.ds-link-cell');
 
         rekInput.value = "NO REKENING";
         rekInput.classList.add('samar');
         jenisSelect.value = "-";
         dateInput.value = dsGetFormattedDate();
         pasteArea.innerHTML = '<span style="font-size:11px; color:var(--ds-text-muted);">Paste ( Ctrl+V )</span>';
-        linkCell.innerHTML = dsBuildLinkCellHtml(false, "");
 
         rekInput.focus();
         rekInput.select();
