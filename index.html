@@ -1705,6 +1705,24 @@
     <span class="label label-sm">DATA PENTING</span>
   </div>
 
+  <!--
+    Menu "GENERATE PASSWORD" — kontennya berasal dari file TERPISAH
+    "generate-password.html" yang ditampilkan lewat iframe di dalam
+    dashboard (pola sama seperti menu "ARSIP" / "DATA PENTING"). Untuk
+    mengubah isi halaman ini, cukup edit file generate-password.html —
+    TIDAK perlu mengubah index.html ini. Lihat <div id="pageGeneratePassword">
+    di bawah.
+  -->
+  <div class="nav-item" id="navGeneratePassword">
+    <span class="icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <circle cx="8" cy="15" r="4" stroke="currentColor" stroke-width="2"/>
+        <path d="M11 12l9-9M17 3l3 3M14 6l2.5 2.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </span>
+    <span class="label label-sm">GENERATE PASSWORD</span>
+  </div>
+
   <div class="sidebar-footer">© 2026 RIKI GOLAN — All Rights Reserved</div>
 </div>
 
@@ -6444,6 +6462,35 @@ setInterval(() => {
   </div>
 </div>
 
+<!--
+  Halaman "GENERATE PASSWORD" — kontennya berasal dari file TERPISAH
+  "generate-password.html" yang ditampilkan lewat iframe di dalam
+  dashboard (pola sama seperti menu "ARSIP" / "DATA PENTING"). Untuk
+  mengubah isi/tampilan generator password, cukup edit file
+  generate-password.html — TIDAK perlu mengubah index.html ini.
+-->
+<div id="pageGeneratePassword" style="display:none;">
+  <div class="topbar">
+    <h1><span>GENERATE PASSWORD &nbsp;&nbsp; • &nbsp;&nbsp; GENERATE PASSWORD &nbsp;&nbsp; • &nbsp;&nbsp; GENERATE PASSWORD &nbsp;&nbsp; • &nbsp;&nbsp; GENERATE PASSWORD</span><span>GENERATE PASSWORD &nbsp;&nbsp; • &nbsp;&nbsp; GENERATE PASSWORD &nbsp;&nbsp; • &nbsp;&nbsp; GENERATE PASSWORD &nbsp;&nbsp; • &nbsp;&nbsp; GENERATE PASSWORD</span></h1>
+  </div>
+
+  <div class="panel" style="padding:16px;">
+    <!--
+      Tinggi kontainer iframe di bawah ini DIATUR LEWAT JAVASCRIPT (lihat fungsi
+      resizeGeneratePasswordFrame di bawah), sama seperti pola Arsip/Data Penting,
+      supaya kontainer selalu memanjang penuh sampai ke bagian bawah layar.
+    -->
+    <div id="generatePasswordWrap" style="position:relative; width:100%; height:70vh; min-height:420px; border-radius:10px; overflow:hidden; border:1px solid var(--border-soft); background:#0a0d1a;">
+      <iframe
+        id="generatePasswordFrame"
+        src="generate-password.html"
+        title="Generate Password"
+        style="width:100%; height:100%; border:0; display:block; background:transparent;">
+      </iframe>
+    </div>
+  </div>
+</div>
+
 <div id="dsToastNotif" class="ds-toast-notif"></div>
 
 <script>
@@ -7119,6 +7166,35 @@ setInterval(() => {
   }
   // Jalankan sekali saat load, untuk kasus halaman Data Penting aktif dari awal
   setTimeout(resizeDataPentingFrame, 0);
+})();
+</script>
+
+<script>
+(function(){
+  // Script TERPISAH khusus untuk mengatur tinggi iframe halaman
+  // "Generate Password" (generate-password.html), mengikuti pola yang
+  // sama seperti resizeArsipFrame / resizeDataPentingFrame, supaya
+  // kontainer iframe selalu memenuhi sisa layar sampai ke bawah.
+  function resizeGeneratePasswordFrame(){
+    var wrap = document.getElementById('generatePasswordWrap');
+    var page = document.getElementById('pageGeneratePassword');
+    if (!wrap || !page || page.style.display === 'none') return;
+    var top = wrap.getBoundingClientRect().top;
+    var target = window.innerHeight - top - 20; // sisakan sedikit jarak di bawah
+    if (target < 420) target = 420;
+    wrap.style.height = target + 'px';
+  }
+  window.addEventListener('resize', resizeGeneratePasswordFrame);
+  window.addEventListener('load', resizeGeneratePasswordFrame);
+  // Dipanggil juga tiap kali menu "GENERATE PASSWORD" diklik di sidebar
+  var navGeneratePasswordEl = document.getElementById('navGeneratePassword');
+  if (navGeneratePasswordEl){
+    navGeneratePasswordEl.addEventListener('click', function(){
+      setTimeout(resizeGeneratePasswordFrame, 0);
+    });
+  }
+  // Jalankan sekali saat load, untuk kasus halaman Generate Password aktif dari awal
+  setTimeout(resizeGeneratePasswordFrame, 0);
 })();
 </script>
 
@@ -8518,7 +8594,8 @@ setInterval(() => {
       dataScreenshot: document.getElementById("navDataScreenshot"),
       caraBetting: document.getElementById("navCaraBetting"),
       arsip: document.getElementById("navArsip"),
-      dataPenting: document.getElementById("navDataPenting")
+      dataPenting: document.getElementById("navDataPenting"),
+      generatePassword: document.getElementById("navGeneratePassword")
     };
     var pages = {
       prediksi: document.getElementById("pagePrediksi"),
@@ -8531,7 +8608,8 @@ setInterval(() => {
       dataScreenshot: document.getElementById("pageDataScreenshot"),
       caraBetting: document.getElementById("pageCaraBetting"),
       arsip: document.getElementById("pageArsip"),
-      dataPenting: document.getElementById("pageDataPenting")
+      dataPenting: document.getElementById("pageDataPenting"),
+      generatePassword: document.getElementById("pageGeneratePassword")
     };
 
     var ACTIVE_PAGE_KEY = 'dashboardActivePage';
@@ -8558,6 +8636,7 @@ setInterval(() => {
     navs.caraBetting.addEventListener("click", function(){ showPage("caraBetting"); });
     navs.arsip.addEventListener("click", function(){ showPage("arsip"); });
     navs.dataPenting.addEventListener("click", function(){ showPage("dataPenting"); });
+    navs.generatePassword.addEventListener("click", function(){ showPage("generatePassword"); });
 
     var savedPage = localStorage.getItem(ACTIVE_PAGE_KEY);
     showPage(pages[savedPage] ? savedPage : "prediksi");
