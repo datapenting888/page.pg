@@ -4184,6 +4184,13 @@
     padding-bottom:8px;
     scrollbar-width:auto;
     scrollbar-color: var(--gold) var(--panel-2);
+    /* Performa scroll horizontal: dorong ke layer GPU sendiri supaya
+       drag/scroll mulus, tidak "lemot", terutama saat baris tabel banyak. */
+    -webkit-overflow-scrolling:touch;
+    will-change:scroll-position;
+    transform:translateZ(0);
+    overscroll-behavior-x:contain;
+    contain:layout paint;
   }
   .hasil-scope .jadwal-scroll::-webkit-scrollbar {
     height:13px;
@@ -4195,7 +4202,6 @@
   .hasil-scope .jadwal-scroll::-webkit-scrollbar-thumb {
     background:var(--gold);
     border-radius:7px;
-    border:2px solid var(--panel-2);
   }
   .hasil-scope .jadwal-scroll::-webkit-scrollbar-thumb:hover {
     background:var(--gold-bright);
@@ -4905,6 +4911,43 @@ function simpanShioData(){
 
 restoreShioTable();
 
+// ===== Rumus Saldo Awal: field-field ini ikut disimpan permanen ke Firebase
+// saat tombol "Simpan Data" diklik (logika hitung di kalkulatornya sendiri
+// TIDAK diubah, ini cuma menambah penyimpanan) =====
+const SALDO_FIELD_IDS = ['extra_input_1','extra_input_2','saldo_bank','dana_pendingan'];
+const SALDO_STORAGE_KEY = 'rumusSaldoAwalData';
+
+function collectSaldoData(){
+  const data = {};
+  SALDO_FIELD_IDS.forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) data[id] = el.value;
+  });
+  return data;
+}
+
+function applySaldoData(saved){
+  if(!saved || typeof saved !== 'object') return;
+  SALDO_FIELD_IDS.forEach(id=>{
+    const el = document.getElementById(id);
+    if(el && saved[id] !== undefined) el.value = saved[id];
+  });
+  if (typeof hitungSaldo === 'function') hitungSaldo();
+}
+
+function simpanSaldoDataLocal(){
+  localStorage.setItem(SALDO_STORAGE_KEY, JSON.stringify(collectSaldoData()));
+}
+
+function restoreSaldoFromLocal(){
+  try {
+    applySaldoData(JSON.parse(localStorage.getItem(SALDO_STORAGE_KEY)));
+  } catch(e) {}
+}
+// Ditunda sampai DOMContentLoaded karena fungsi hitungSaldo() didefinisikan
+// di <script> lain yang letaknya lebih bawah di halaman ini.
+document.addEventListener('DOMContentLoaded', restoreSaldoFromLocal);
+
 // Build a lookup { "01": "Kuda", ... } straight from the (editable) SHIO table
 function getShioLookup(){
   const map = {};
@@ -5492,10 +5535,12 @@ function kirimDataKeFirebase() {
     if (!nameCell || !numsCell) return;
     shioData.push({ name: nameCell.textContent.trim(), nums: numsCell.textContent.trim() });
   });
-  console.log('[Firebase] Mengirim jadwalData:', jadwalData, 'shioData:', shioData);
+  const saldoData = (typeof collectSaldoData === 'function') ? collectSaldoData() : {};
+  console.log('[Firebase] Mengirim jadwalData:', jadwalData, 'shioData:', shioData, 'saldoData:', saldoData);
   return Promise.all([
     hasilDB.ref('resultJadwalPasaran/jadwal').set(jadwalData),
-    hasilDB.ref('resultJadwalPasaran/shio').set(shioData)
+    hasilDB.ref('resultJadwalPasaran/shio').set(shioData),
+    hasilDB.ref('resultJadwalPasaran/saldoAwal').set(saldoData)
   ]).then(() => {
     console.log('[Firebase] set() SUKSES tersimpan ke server.');
   });
@@ -5542,6 +5587,14 @@ if (hasilDB) {
       localStorage.setItem(SHIO_STORAGE_KEY, JSON.stringify(data));
     }
   });
+  hasilDB.ref('resultJadwalPasaran/saldoAwal').on('value', (snapshot) => {
+    const data = snapshot.val();
+    const sedangDiedit = document.activeElement && SALDO_FIELD_IDS.includes(document.activeElement.id);
+    if (data && !sedangDiedit) {
+      applySaldoData(data);
+      localStorage.setItem(SALDO_STORAGE_KEY, JSON.stringify(data));
+    }
+  });
 }
 
 // Tombol "Simpan Data" manual di bawah Rumus Saldo Awal (memberi konfirmasi visual)
@@ -5550,6 +5603,7 @@ if (simpanDataBtn) {
   simpanDataBtn.addEventListener('click', () => {
     simpanJadwalData();
     if (typeof simpanShioData === 'function') simpanShioData();
+    if (typeof simpanSaldoDataLocal === 'function') simpanSaldoDataLocal();
 
     const originalText = simpanDataBtn.textContent;
     simpanDataBtn.textContent = 'Menyimpan…';
