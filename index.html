@@ -4240,6 +4240,19 @@
     accent-color:var(--gold);
     cursor:pointer;
   }
+  .hasil-scope .jadwal-website {
+    min-width:90px;
+    color:var(--gold-bright);
+    text-decoration:underline;
+    text-decoration-style:dotted;
+  }
+  .hasil-scope .jadwal-website:empty::before {
+    content:"+ tambah link";
+    color:var(--ink-faint);
+    text-decoration:none;
+    font-style:italic;
+    opacity:.6;
+  }
 
   /* ===== HITUNGAN TOTO SINGAPORE ===== */
   .hasil-scope .toto-wrap {
@@ -4736,6 +4749,7 @@
         <th>Result</th>
         <th>Jadwal</th>
         <th>Hasil</th>
+        <th>Link Website</th>
       </tr>
     </thead>
     <tbody id="jadwalBody"></tbody>
@@ -5168,6 +5182,7 @@ dataJadwal.forEach((row, idx) => {
   const jadwal = saved.jadwal !== undefined ? saved.jadwal : row[3];
   // Checkbox otomatis terhapus (tidak dipulihkan) jika sudah pergantian hari
   const checked = jadwalDayChanged ? false : !!saved.checked;
+  const link = saved.link !== undefined ? saved.link : '';
 
   const tr = document.createElement('tr');
   tr.innerHTML = `
@@ -5177,6 +5192,7 @@ dataJadwal.forEach((row, idx) => {
     <td class="jadwal-editable" contenteditable="true">${result}</td>
     <td class="jadwal-editable" contenteditable="true">${jadwal}</td>
     <td class="jadwal-hasil${checked ? ' jadwal-result' : ''}">${checked ? 'RESULT' : 'BELUM RESULT'}</td>
+    <td class="jadwal-editable jadwal-website" contenteditable="true">${link}</td>
   `;
   jadwalBody.appendChild(tr);
 });
@@ -5195,6 +5211,7 @@ function applyJadwalData(saved) {
     if (editable[0] && data.tutup !== undefined) editable[0].textContent = data.tutup;
     if (editable[1] && data.result !== undefined) editable[1].textContent = data.result;
     if (editable[2] && data.jadwal !== undefined) editable[2].textContent = data.jadwal;
+    if (editable[3] && data.link !== undefined) editable[3].textContent = data.link;
     if (checkbox && data.checked !== undefined) checkbox.checked = data.checked;
     if (hasilCell) {
       if (data.checked) {
@@ -5219,6 +5236,7 @@ function simpanJadwalData() {
       tutup: editable[0] ? editable[0].textContent.trim() : '',
       result: editable[1] ? editable[1].textContent.trim() : '',
       jadwal: editable[2] ? editable[2].textContent.trim() : '',
+      link: editable[3] ? editable[3].textContent.trim() : '',
       checked: checkbox ? checkbox.checked : false
     });
   });
@@ -5418,6 +5436,7 @@ function kirimDataKeFirebase() {
       tutup: editable[0] ? editable[0].textContent.trim() : '',
       result: editable[1] ? editable[1].textContent.trim() : '',
       jadwal: editable[2] ? editable[2].textContent.trim() : '',
+      link: editable[3] ? editable[3].textContent.trim() : '',
       checked: checkbox ? checkbox.checked : false
     });
   });
