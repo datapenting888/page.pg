@@ -4177,64 +4177,6 @@
      lebar layar lewat clamp()/vw di aturan .jadwal-table di bawah. */
 
   /* ===== JADWAL PASARAN ===== */
-  .hasil-scope .jadwal-side-flex {
-    display:flex;
-    flex-direction:row;
-    align-items:stretch;
-    gap:10px;
-    width:100%;
-    min-width:0;
-  }
-  .hasil-scope .jadwal-side-flex .jadwal-wrap {
-    flex:1 1 auto;
-    min-width:0;
-  }
-  .hasil-scope .jadwal-notes-wrap {
-    flex:0 0 clamp(110px, 13vw, 180px);
-    min-width:0;
-    display:flex;
-    flex-direction:column;
-  }
-  .hasil-scope .jadwal-notes-header {
-    background:var(--panel-2);
-    padding:clamp(3px, 0.6vw, 9px) clamp(2px, 0.5vw, 8px);
-    font-size:clamp(7.5px, 1.05vw, 11.5px);
-    font-family:Arial, sans-serif;
-    letter-spacing:1.5px;
-    text-transform:uppercase;
-    text-align:center;
-    border:1px dashed var(--line);
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-  }
-  .hasil-scope .jadwal-notes-header a {
-    color:var(--gold-bright);
-    text-decoration:none;
-  }
-  .hasil-scope .jadwal-notes-header a:hover {
-    text-decoration:underline;
-  }
-  .hasil-scope .jadwal-notes-box {
-    flex:1 1 auto;
-    min-height:0;
-    overflow-y:auto;
-    padding:8px;
-    font-family:Arial, sans-serif;
-    font-size:clamp(8px, 1vw, 12.5px);
-    color:var(--text-uniform);
-    background:transparent;
-    border:1px dashed var(--line);
-    border-top:none;
-    white-space:pre-wrap;
-    word-break:break-word;
-    cursor:text;
-  }
-  .hasil-scope .jadwal-notes-box:focus {
-    outline:2px solid var(--gold-bright);
-    outline-offset:-2px;
-    background:rgba(230,190,80,.08);
-  }
   .hasil-scope .jadwal-wrap { padding:2px; }
   .hasil-scope .jadwal-scroll {
     overflow-x:visible;
@@ -4783,28 +4725,21 @@
 <div class="col-right">
 
 <!-- JADWAL PASARAN -->
-<div class="jadwal-side-flex">
-  <div class="block jadwal-wrap">
-    <div class="jadwal-scroll">
-    <table class="jadwal-table">
-      <thead>
-        <tr>
-          <th></th>
-          <th>Nama Pasaran</th>
-          <th>Jam Tutup</th>
-          <th>Result</th>
-          <th>Jadwal</th>
-          <th>Hasil</th>
-        </tr>
-      </thead>
-      <tbody id="jadwalBody"></tbody>
-    </table>
-    </div>
-  </div>
-
-  <div class="block jadwal-notes-wrap">
-    <div class="jadwal-notes-header"><a href="https://example.com" target="_blank" rel="noopener">Kunjungi Website</a></div>
-    <div class="jadwal-notes-box" id="jadwalNotes" contenteditable="true"></div>
+<div class="block jadwal-wrap">
+  <div class="jadwal-scroll">
+  <table class="jadwal-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Nama Pasaran</th>
+        <th>Jam Tutup</th>
+        <th>Result</th>
+        <th>Jadwal</th>
+        <th>Hasil</th>
+      </tr>
+    </thead>
+    <tbody id="jadwalBody"></tbody>
+  </table>
   </div>
 </div>
 
@@ -5209,8 +5144,6 @@ const dataJadwal = [
 const jadwalBody = document.getElementById('jadwalBody');
 const JADWAL_STORAGE_KEY = 'jadwalPasaranData';
 const JADWAL_DATE_KEY = 'jadwalPasaranDate';
-const jadwalNotesEl = document.getElementById('jadwalNotes');
-const JADWAL_NOTES_STORAGE_KEY = 'jadwalPasaranKeterangan';
 
 function getTodayStr() {
   return new Date().toDateString();
@@ -5247,43 +5180,6 @@ dataJadwal.forEach((row, idx) => {
   `;
   jadwalBody.appendChild(tr);
 });
-
-// Muat catatan/keterangan bebas (satu kotak gabungan di samping tabel
-// Jadwal Pasaran) dari localStorage saat halaman pertama kali dibuka
-if (jadwalNotesEl) {
-  const notesTersimpan = localStorage.getItem(JADWAL_NOTES_STORAGE_KEY);
-  if (notesTersimpan !== null) jadwalNotesEl.textContent = notesTersimpan;
-}
-
-// Simpan isi kotak Keterangan ke localStorage
-function simpanJadwalNotes() {
-  if (!jadwalNotesEl) return;
-  localStorage.setItem(JADWAL_NOTES_STORAGE_KEY, jadwalNotesEl.textContent);
-}
-
-// Terapkan isi Keterangan dari localStorage ATAU dari Firebase, tanpa
-// mengganggu kalau sedang diketik
-function applyJadwalNotes(teks) {
-  if (!jadwalNotesEl) return;
-  if (document.activeElement === jadwalNotesEl) return;
-  if (teks !== undefined && teks !== null) jadwalNotesEl.textContent = teks;
-}
-
-// Real-time: setiap perubahan pada kotak Keterangan langsung disimpan
-// (lokal) & disinkron ke Firebase (dengan debounce, sama seperti kolom
-// Jam Tutup / Result / Jadwal)
-let jadwalNotesSyncTimer = null;
-if (jadwalNotesEl) {
-  jadwalNotesEl.addEventListener('input', () => {
-    simpanJadwalNotes();
-    clearTimeout(jadwalNotesSyncTimer);
-    jadwalNotesSyncTimer = setTimeout(() => {
-      kirimDataKeFirebase().catch((err) => {
-        console.error('[Firebase] Gagal sinkron otomatis (keterangan):', err);
-      });
-    }, 800);
-  });
-}
 
 // Terapkan data (dari localStorage ATAU dari Firebase) ke baris tabel yang sudah ada,
 // tanpa membangun ulang elemennya (supaya tidak mengganggu baris yang sedang diedit)
@@ -5506,10 +5402,6 @@ jadwalBody.addEventListener('input', (e) => {
   }
 });
 
-// Real-time: setiap perubahan pada kotak Keterangan langsung disimpan
-// (lokal) & disinkron ke Firebase (dengan debounce). Penanganan input-nya
-// sudah didaftarkan di atas lewat variabel jadwalNotesEl.
-
 // Kirim data Jadwal Pasaran & Shio yang sedang tampil ke Firebase Realtime Database.
 // Mengembalikan Promise supaya tombol "Simpan Data" tahu persis apakah kirimnya
 // benar-benar berhasil atau gagal (tidak lagi berpura-pura sukses).
@@ -5536,12 +5428,10 @@ function kirimDataKeFirebase() {
     if (!nameCell || !numsCell) return;
     shioData.push({ name: nameCell.textContent.trim(), nums: numsCell.textContent.trim() });
   });
-  const keteranganData = jadwalNotesEl ? jadwalNotesEl.textContent : '';
-  console.log('[Firebase] Mengirim jadwalData:', jadwalData, 'shioData:', shioData, 'keteranganData:', keteranganData);
+  console.log('[Firebase] Mengirim jadwalData:', jadwalData, 'shioData:', shioData);
   return Promise.all([
     hasilDB.ref('resultJadwalPasaran/jadwal').set(jadwalData),
-    hasilDB.ref('resultJadwalPasaran/shio').set(shioData),
-    hasilDB.ref('resultJadwalPasaran/keterangan').set(keteranganData)
+    hasilDB.ref('resultJadwalPasaran/shio').set(shioData)
   ]).then(() => {
     console.log('[Firebase] set() SUKSES tersimpan ke server.');
   });
@@ -5588,13 +5478,6 @@ if (hasilDB) {
       localStorage.setItem(SHIO_STORAGE_KEY, JSON.stringify(data));
     }
   });
-  hasilDB.ref('resultJadwalPasaran/keterangan').on('value', (snapshot) => {
-    const data = snapshot.val();
-    if (data !== null && document.activeElement !== jadwalNotesEl) {
-      applyJadwalNotes(data);
-      localStorage.setItem(JADWAL_NOTES_STORAGE_KEY, data);
-    }
-  });
 }
 
 // Tombol "Simpan Data" manual di bawah Rumus Saldo Awal (memberi konfirmasi visual)
@@ -5602,7 +5485,6 @@ const simpanDataBtn = document.getElementById('simpanDataBtn');
 if (simpanDataBtn) {
   simpanDataBtn.addEventListener('click', () => {
     simpanJadwalData();
-    simpanJadwalNotes();
     if (typeof simpanShioData === 'function') simpanShioData();
 
     const originalText = simpanDataBtn.textContent;
