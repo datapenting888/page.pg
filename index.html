@@ -4179,12 +4179,30 @@
   /* ===== JADWAL PASARAN ===== */
   .hasil-scope .jadwal-wrap { padding:2px; }
   .hasil-scope .jadwal-scroll {
-    overflow-x:visible;
+    overflow-x:auto;
     border-radius:2px;
+    padding-bottom:8px;
+    scrollbar-width:auto;
+    scrollbar-color: var(--gold) var(--panel-2);
+  }
+  .hasil-scope .jadwal-scroll::-webkit-scrollbar {
+    height:13px;
+  }
+  .hasil-scope .jadwal-scroll::-webkit-scrollbar-track {
+    background:var(--panel-2);
+    border-radius:7px;
+  }
+  .hasil-scope .jadwal-scroll::-webkit-scrollbar-thumb {
+    background:var(--gold);
+    border-radius:7px;
+    border:2px solid var(--panel-2);
+  }
+  .hasil-scope .jadwal-scroll::-webkit-scrollbar-thumb:hover {
+    background:var(--gold-bright);
   }
   .hasil-scope .jadwal-table {
     width:100%;
-    min-width:0;
+    min-width:900px;
     table-layout:auto;
     border-collapse:collapse;
   }
@@ -4241,10 +4259,11 @@
     cursor:pointer;
   }
   .hasil-scope .jadwal-website {
-    min-width:90px;
+    min-width:140px;
     color:var(--gold-bright);
     text-decoration:underline;
     text-decoration-style:dotted;
+    cursor:pointer;
   }
   .hasil-scope .jadwal-website:empty::before {
     content:"+ tambah link";
@@ -4252,6 +4271,7 @@
     text-decoration:none;
     font-style:italic;
     opacity:.6;
+    cursor:text;
   }
 
   /* ===== HITUNGAN TOTO SINGAPORE ===== */
@@ -5398,6 +5418,31 @@ jadwalBody.addEventListener('change', (e) => {
       console.error('[Firebase] Gagal sinkron otomatis (checkbox):', err);
     });
   }
+});
+
+// Kolom "Link Website": klik sekali langsung membuka link di tab baru,
+// klik dua kali untuk masuk mode edit (mengganti isi kotak).
+jadwalBody.addEventListener('click', (e) => {
+  const cell = e.target.closest('.jadwal-website');
+  if (!cell) return;
+  const raw = cell.textContent.trim();
+  if (!raw) return; // kotak masih kosong -> biarkan langsung bisa diketik
+  e.preventDefault();
+  let href = raw;
+  if (!/^https?:\/\//i.test(href)) href = 'https://' + href;
+  window.open(href, '_blank', 'noopener,noreferrer');
+});
+
+jadwalBody.addEventListener('dblclick', (e) => {
+  const cell = e.target.closest('.jadwal-website');
+  if (!cell) return;
+  cell.focus();
+  const range = document.createRange();
+  range.selectNodeContents(cell);
+  range.collapse(false);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
 });
 
 // Real-time: setiap perubahan pada kolom Jam Tutup, Result, atau Jadwal langsung disimpan
