@@ -6,21 +6,22 @@
 <title>Keep</title>
 <style>
   :root{
-    --border-soft: rgba(255,255,255,0.08);
-    --text-primary: #e8ecf3;
-    --text-secondary: #9aa4b2;
+    --bg: #0a0d1a;
     --card-bg: #12162a;
-    --card-bg-hover: #171c34;
-    --accent: #6c8cff;
-    --accent-soft: rgba(108,140,255,0.15);
-    --danger: #ff6b6b;
-    --pin-color: #ffd166;
+    --card-bg-hover: #161b34;
+    --border-soft: rgba(255,255,255,0.07);
+    --border-hover: rgba(255,255,255,0.14);
+    --text-primary: #e9ecf4;
+    --text-secondary: #8d96a8;
+    --accent: #e8b854;
+    --accent-soft: rgba(232,184,84,0.14);
+    --danger: #e8697a;
   }
   html, body{
     margin:0;
     padding:0;
     height:100%;
-    background:#0a0d1a;
+    background:var(--bg);
     color:var(--text-primary);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
   }
@@ -28,35 +29,53 @@
   .keep-wrap{
     width:100%;
     min-height:100%;
-    padding:16px 16px 60px;
+    padding:22px 16px 70px;
   }
 
   /* ---- Top bar ---- */
   .keep-topbar{
-    max-width:720px;
-    margin:0 auto 26px;
+    max-width:680px;
+    margin:0 auto 32px;
     display:flex;
     flex-direction:column;
-    gap:10px;
+    gap:12px;
+  }
+  .keep-search-row{
+    position:relative;
+  }
+  .keep-search-row svg{
+    position:absolute;
+    left:14px;
+    top:50%;
+    transform:translateY(-50%);
+    color:var(--text-secondary);
+    pointer-events:none;
   }
   .keep-search{
     width:100%;
     background:var(--card-bg);
     border:1px solid var(--border-soft);
-    border-radius:24px;
-    padding:10px 16px;
+    border-radius:22px;
+    padding:11px 16px 11px 40px;
     color:var(--text-primary);
     font-size:14px;
     outline:none;
+    transition:border-color .15s ease;
   }
+  .keep-search:focus{ border-color:var(--border-hover); }
   .keep-search::placeholder{ color:var(--text-secondary); }
 
   .composer{
     background:var(--card-bg);
     border:1px solid var(--border-soft);
-    border-radius:12px;
-    padding:12px 14px;
-    box-shadow:0 4px 14px rgba(0,0,0,0.25);
+    border-radius:22px;
+    padding:11px 16px;
+    box-shadow:0 6px 18px rgba(0,0,0,0.28);
+    transition:border-radius .12s ease, border-color .12s ease;
+  }
+  .composer.active{
+    border-radius:14px;
+    border-color:var(--border-hover);
   }
   .composer textarea{
     width:100%;
@@ -67,17 +86,88 @@
     color:var(--text-primary);
     font-size:14px;
     font-family:inherit;
-    line-height:1.5;
+    line-height:1.55;
     min-height:22px;
-    max-height:260px;
+    max-height:280px;
     overflow-y:auto;
     display:block;
   }
   .composer textarea::placeholder{ color:var(--text-secondary); }
+
+  .composer-title, .note-title-input{
+    display:block;
+    width:100%;
+    background:transparent;
+    border:none;
+    outline:none;
+    color:var(--text-primary);
+    font-size:15px;
+    font-weight:600;
+    font-family:inherit;
+    margin-bottom:4px;
+  }
+  .composer-title::placeholder, .note-title-input::placeholder{ color:var(--text-secondary); font-weight:600; }
+
+  .note-title{
+    font-size:15px;
+    font-weight:600;
+    line-height:1.4;
+    color:var(--text-primary);
+    margin-bottom:4px;
+    cursor:pointer;
+    word-break:break-word;
+  }
+  .note-title.copied-flash{ color:var(--accent); }
+
+  .thumb-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:10px;
+  }
+  .thumb-row:empty{ margin-top:0; }
+  .thumb{
+    position:relative;
+    width:64px;
+    height:64px;
+    border-radius:8px;
+    overflow:hidden;
+    background:#1c2340;
+    border:1px solid var(--border-soft);
+    cursor:pointer;
+  }
+  .thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .thumb.uploading::after{
+    content:'';
+    position:absolute; inset:0;
+    border:2px solid rgba(255,255,255,0.15);
+    border-top-color: var(--accent);
+    border-radius:50%;
+    width:18px; height:18px;
+    margin:auto;
+    animation:spin .7s linear infinite;
+  }
+  .thumb .thumb-remove{
+    position:absolute;
+    top:2px; right:2px;
+    width:18px; height:18px;
+    background:rgba(10,13,26,0.75);
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    font-size:11px;
+    line-height:1;
+    cursor:pointer;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
   .composer-actions{
     display:none;
     justify-content:flex-end;
-    gap:8px;
+    align-items:center;
+    gap:6px;
     margin-top:10px;
   }
   .composer.active .composer-actions{ display:flex; }
@@ -90,33 +180,44 @@
     cursor:pointer;
     font-family:inherit;
   }
-  .btn-save{ background:var(--accent); color:#fff; }
-  .btn-save:disabled{ opacity:.4; cursor:default; }
+  .btn-save{ background:var(--accent); color:#1a1406; font-weight:600; }
+  .btn-save:disabled{ opacity:.35; cursor:default; }
   .btn-cancel{ background:transparent; color:var(--text-secondary); }
   .btn-cancel:hover{ color:var(--text-primary); }
+  .btn-icon-inline{
+    width:32px; height:32px;
+    border-radius:50%;
+    border:none;
+    background:transparent;
+    color:var(--text-secondary);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    margin-right:auto;
+  }
+  .btn-icon-inline:hover{ background:rgba(255,255,255,0.08); color:var(--text-primary); }
 
   /* ---- Sections ---- */
   .keep-section-title{
-    max-width:1100px;
+    max-width:1120px;
     margin:0 auto 10px;
-    font-size:11px;
-    letter-spacing:1px;
+    font-size:12px;
     color:var(--text-secondary);
     font-weight:600;
     padding-left:4px;
   }
   .keep-grid{
-    max-width:1100px;
-    margin:0 auto 28px;
+    max-width:1120px;
+    margin:0 auto 30px;
     column-width:230px;
     column-gap:14px;
   }
   .keep-empty{
     color:var(--text-secondary);
-    margin:40px auto;
+    margin:50px auto;
     font-size:14px;
     text-align:center;
     max-width:400px;
+    line-height:1.6;
   }
 
   /* ---- Note card ---- */
@@ -125,18 +226,38 @@
     margin-bottom:14px;
     background:var(--card-bg);
     border:1px solid var(--border-soft);
-    border-radius:12px;
+    border-radius:14px;
     padding:12px 14px 8px;
-    transition:background .15s ease, border-color .15s ease;
+    transition:background .15s ease, border-color .15s ease, transform .12s ease, box-shadow .15s ease;
     position:relative;
   }
-  .note-card:hover{ background:var(--card-bg-hover); border-color:rgba(255,255,255,0.16); }
+  .note-card:hover{
+    background:var(--card-bg-hover);
+    border-color:var(--border-hover);
+    box-shadow:0 8px 20px rgba(0,0,0,0.3);
+    transform:translateY(-1px);
+  }
+
+  .note-images{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(60px, 1fr));
+    gap:6px;
+    margin-bottom:8px;
+  }
+  .note-images img{
+    width:100%;
+    aspect-ratio:1/1;
+    object-fit:cover;
+    border-radius:8px;
+    cursor:pointer;
+    display:block;
+  }
 
   .note-text{
     white-space:pre-wrap;
     word-break:break-word;
     font-size:14px;
-    line-height:1.5;
+    line-height:1.55;
     cursor:pointer;
     color:var(--text-primary);
     min-height:20px;
@@ -152,7 +273,7 @@
     color:var(--text-primary);
     font-size:14px;
     font-family:inherit;
-    line-height:1.5;
+    line-height:1.55;
     min-height:20px;
     overflow:hidden;
   }
@@ -172,6 +293,7 @@
   .note-toolbar.editing-actions{
     justify-content:space-between;
   }
+  .editing-actions .right-group{ display:flex; gap:6px; }
 
   .icon-btn{
     width:30px;
@@ -184,11 +306,11 @@
     align-items:center;
     justify-content:center;
     cursor:pointer;
-    font-size:15px;
   }
   .icon-btn:hover{ background:rgba(255,255,255,0.08); color:var(--text-primary); }
-  .icon-btn.pinned{ color:var(--pin-color); }
+  .icon-btn.pinned{ color:var(--accent); }
   .icon-btn.danger:hover{ color:var(--danger); }
+  .icon-btn svg{ width:16px; height:16px; }
 
   .note-toast{
     position:fixed;
@@ -212,6 +334,22 @@
     transform:translateX(-50%) translateY(0);
   }
 
+  .lightbox{
+    position:fixed; inset:0;
+    background:rgba(5,6,12,0.9);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:1000;
+    padding:30px;
+  }
+  .lightbox.show{ display:flex; }
+  .lightbox img{
+    max-width:100%;
+    max-height:100%;
+    border-radius:10px;
+  }
+
   @media (max-width:480px){
     .keep-grid{ column-width:100%; }
   }
@@ -220,12 +358,17 @@
 <body>
   <div class="keep-wrap">
     <div class="keep-topbar">
-      <input type="text" class="keep-search" id="searchInput" placeholder="Telusuri catatan...">
+      <div class="keep-search-row">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" class="keep-search" id="searchInput" placeholder="Telusuri catatan...">
+      </div>
       <div class="composer" id="composer">
-        <textarea id="composerInput" placeholder="Buat catatan..." rows="1"></textarea>
+        <input type="text" class="composer-title" id="composerTitle" placeholder="Judul">
+        <textarea id="composerInput" placeholder="Buat catatan... (tempel gambar dengan Ctrl+V)" rows="1"></textarea>
+        <div class="thumb-row" id="composerThumbs"></div>
         <div class="composer-actions">
           <button class="btn btn-cancel" id="composerCancel">Batal</button>
-          <button class="btn btn-save" id="composerSave">Simpan</button>
+          <button class="btn btn-save" id="composerSave" disabled>Simpan</button>
         </div>
       </div>
     </div>
@@ -240,37 +383,45 @@
       <div class="keep-grid" id="othersGrid"></div>
     </div>
 
-    <p class="keep-empty" id="emptyState">Belum ada catatan. Tulis sesuatu di atas untuk mulai.</p>
+    <p class="keep-empty" id="emptyState">Belum ada catatan. Tulis sesuatu di atas untuk mulai — kamu juga bisa menempel gambar (Ctrl+V).</p>
   </div>
 
   <div class="note-toast" id="toast">Disalin ke clipboard</div>
+  <div class="lightbox" id="lightbox"><img id="lightboxImg" src="" alt=""></div>
 
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
   <script>
-    // =====================================================================
-    // GANTI dengan konfigurasi Firebase project "datapenting888" yang sama
-    // dipakai di index.html / chat.html. Silakan tempel objek firebaseConfig
-    // yang asli di sini.
-    // =====================================================================
     const firebaseConfig = {
-      apiKey: "GANTI_API_KEY",
-      authDomain: "datapenting888.firebaseapp.com",
-      databaseURL: "https://datapenting888-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "datapenting888",
-      storageBucket: "datapenting888.appspot.com",
-      messagingSenderId: "GANTI_SENDER_ID",
-      appId: "GANTI_APP_ID"
+      apiKey: "AIzaSyB_FppKNjBtmP4aOd4v5JVERC-e2cjqt-s",
+      authDomain: "datapenting888-94bc6.firebaseapp.com",
+      databaseURL: "https://datapenting888-94bc6-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "datapenting888-94bc6",
+      storageBucket: "datapenting888-94bc6.firebasestorage.app",
+      messagingSenderId: "384090086406",
+      appId: "1:384090086406:web:c111526d2f4202d502b787",
+      measurementId: "G-183NEV6N2L"
     };
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+    const storage = firebase.storage();
     const keepRef = db.ref('keep');
 
     let notesCache = {};
     let searchTerm = '';
     let editingId = null;
+    let editDraftImages = {}; // { noteId: [urls] }
+
+    // ---------- Icons ----------
+    const ICONS = {
+      pin: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>`,
+      edit: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>`,
+      trash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>`,
+      image: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>`
+    };
 
     // ---------- Helpers ----------
     function escapeHtml(str){
@@ -307,40 +458,135 @@
       el.style.height = el.scrollHeight + 'px';
     }
 
+    function openLightbox(url){
+      document.getElementById('lightboxImg').src = url;
+      document.getElementById('lightbox').classList.add('show');
+    }
+    document.getElementById('lightbox').addEventListener('click', () => {
+      document.getElementById('lightbox').classList.remove('show');
+    });
+
+    function uploadImage(file){
+      const filename = 'keepImages/' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+      const ref = storage.ref(filename);
+      return ref.put(file).then(snap => snap.ref.getDownloadURL());
+    }
+
     // ---------- Composer (tambah catatan baru) ----------
     const composer = document.getElementById('composer');
+    const composerTitle = document.getElementById('composerTitle');
     const composerInput = document.getElementById('composerInput');
+    const composerThumbs = document.getElementById('composerThumbs');
     const composerSave = document.getElementById('composerSave');
     const composerCancel = document.getElementById('composerCancel');
+    let composerImages = []; // [{id, url, uploading}]
+
+    function refreshComposerSaveState(){
+      const hasTitle = composerTitle.value.trim().length > 0;
+      const hasText = composerInput.value.trim().length > 0;
+      const hasImages = composerImages.some(i => !i.uploading);
+      composerSave.disabled = !(hasTitle || hasText || hasImages);
+    }
+
+    composerTitle.addEventListener('input', refreshComposerSaveState);
+    composerTitle.addEventListener('focus', () => composer.classList.add('active'));
+    composerTitle.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); composerInput.focus(); }
+    });
+
+    function renderThumbRow(container, images, onRemove){
+      container.innerHTML = '';
+      images.forEach(img => {
+        const el = document.createElement('div');
+        el.className = 'thumb' + (img.uploading ? ' uploading' : '');
+        if (!img.uploading) {
+          el.innerHTML = `<img src="${img.url}" alt=""><div class="thumb-remove">✕</div>`;
+          el.querySelector('img').addEventListener('click', (e) => { e.stopPropagation(); openLightbox(img.url); });
+          el.querySelector('.thumb-remove').addEventListener('click', (e) => { e.stopPropagation(); onRemove(img.id); });
+        }
+        container.appendChild(el);
+      });
+    }
+
+    function handlePasteEvent(e, images, onChange){
+      const cd = e.clipboardData || e.originalEvent && e.originalEvent.clipboardData;
+      if (!cd) return;
+      const items = cd.items || [];
+      let found = false;
+      for (const item of items) {
+        if (item.type && item.type.indexOf('image') === 0) {
+          found = true;
+          const file = item.getAsFile();
+          const id = 'p' + Date.now() + Math.random().toString(36).slice(2, 6);
+          images.push({ id, uploading: true });
+          onChange();
+          uploadImage(file).then(url => {
+            const entry = images.find(i => i.id === id);
+            if (entry) { entry.uploading = false; entry.url = url; }
+            onChange();
+          }).catch(() => {
+            const idx = images.findIndex(i => i.id === id);
+            if (idx > -1) images.splice(idx, 1);
+            onChange();
+            showToast('Gagal mengunggah gambar');
+          });
+        }
+      }
+      if (found) e.preventDefault();
+    }
 
     composerInput.addEventListener('input', () => {
       autoResize(composerInput);
-      composerSave.disabled = composerInput.value.trim().length === 0;
+      refreshComposerSaveState();
     });
 
     composerInput.addEventListener('focus', () => {
       composer.classList.add('active');
     });
 
+    function removeComposerImage(id){
+      composerImages = composerImages.filter(i => i.id !== id);
+      renderComposerThumbs();
+      refreshComposerSaveState();
+    }
+    function renderComposerThumbs(){
+      renderThumbRow(composerThumbs, composerImages, removeComposerImage);
+    }
+
+    composerInput.addEventListener('paste', (e) => {
+      handlePasteEvent(e, composerImages, () => {
+        renderComposerThumbs();
+        refreshComposerSaveState();
+      });
+    });
+
     composerSave.addEventListener('click', () => {
+      const title = composerTitle.value.trim();
       const text = composerInput.value.trim();
-      if (!text) return;
+      const images = composerImages.filter(i => !i.uploading && i.url).map(i => i.url);
+      if (!title && !text && images.length === 0) return;
       const newRef = keepRef.push();
-      newRef.set({
+      const data = {
         text: text,
         pinned: false,
         createdAt: firebase.database.ServerValue.TIMESTAMP,
         updatedAt: firebase.database.ServerValue.TIMESTAMP
-      });
+      };
+      if (title) data.title = title;
+      if (images.length) data.images = images;
+      newRef.set(data);
       resetComposer();
     });
 
     composerCancel.addEventListener('click', resetComposer);
 
     function resetComposer(){
+      composerTitle.value = '';
       composerInput.value = '';
       composerInput.style.height = 'auto';
       composer.classList.remove('active');
+      composerImages = [];
+      composerThumbs.innerHTML = '';
       composerSave.disabled = true;
     }
 
@@ -371,7 +617,10 @@
       let entries = Object.keys(notesCache).map(id => ({ id, ...notesCache[id] }));
 
       if (searchTerm) {
-        entries = entries.filter(n => (n.text || '').toLowerCase().includes(searchTerm));
+        entries = entries.filter(n =>
+          (n.text || '').toLowerCase().includes(searchTerm) ||
+          (n.title || '').toLowerCase().includes(searchTerm)
+        );
       }
 
       entries.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
@@ -390,7 +639,7 @@
       if (entries.length === 0 && searchTerm) {
         emptyState.textContent = 'Tidak ada catatan yang cocok.';
       } else if (entries.length === 0) {
-        emptyState.textContent = 'Belum ada catatan. Tulis sesuatu di atas untuk mulai.';
+        emptyState.textContent = 'Belum ada catatan. Tulis sesuatu di atas untuk mulai — kamu juga bisa menempel gambar (Ctrl+V).';
       }
     }
 
@@ -401,39 +650,69 @@
 
       if (editingId === note.id) {
         card.classList.add('editing');
+        if (!editDraftImages[note.id]) {
+          editDraftImages[note.id] = (note.images || []).map(url => ({ id: 'e' + Math.random().toString(36).slice(2,8), url, uploading:false }));
+        }
         card.innerHTML = `
+          <input type="text" class="note-title-input" placeholder="Judul" value="${escapeHtml(note.title || '')}">
           <textarea class="note-edit-area">${escapeHtml(note.text || '')}</textarea>
+          <div class="thumb-row edit-thumbs"></div>
           <div class="note-toolbar editing-actions">
-            <button class="icon-btn danger" data-action="delete" title="Hapus">🗑</button>
-            <div>
+            <button class="icon-btn danger" data-action="delete" title="Hapus">${ICONS.trash}</button>
+            <div class="right-group">
               <button class="btn btn-cancel" data-action="cancel-edit">Batal</button>
               <button class="btn btn-save" data-action="save-edit">Simpan</button>
             </div>
           </div>
         `;
         const textarea = card.querySelector('.note-edit-area');
+        const thumbRow = card.querySelector('.edit-thumbs');
+        const doRenderThumbs = () => renderThumbRow(thumbRow, editDraftImages[note.id], (id) => {
+          editDraftImages[note.id] = editDraftImages[note.id].filter(i => i.id !== id);
+          doRenderThumbs();
+        });
+        doRenderThumbs();
         requestAnimationFrame(() => { autoResize(textarea); textarea.focus(); });
         textarea.addEventListener('input', () => autoResize(textarea));
+        textarea.addEventListener('paste', (e) => {
+          handlePasteEvent(e, editDraftImages[note.id], doRenderThumbs);
+        });
       } else {
+        const imagesHtml = (note.images && note.images.length)
+          ? `<div class="note-images">${note.images.map(url => `<img src="${url}" alt="" data-action="view-image" data-url="${url}">`).join('')}</div>`
+          : '';
+        const titleHtml = note.title
+          ? `<div class="note-title" data-action="copy-title">${escapeHtml(note.title)}</div>`
+          : '';
         card.innerHTML = `
+          ${imagesHtml}
+          ${titleHtml}
           <div class="note-text" data-action="copy">${escapeHtml(note.text || '')}</div>
           <div class="note-toolbar">
-            <button class="icon-btn ${note.pinned ? 'pinned' : ''}" data-action="pin" title="Sematkan">📌</button>
-            <button class="icon-btn" data-action="edit" title="Edit">✏️</button>
-            <button class="icon-btn danger" data-action="delete" title="Hapus">🗑</button>
+            <button class="icon-btn ${note.pinned ? 'pinned' : ''}" data-action="pin" title="Sematkan">${ICONS.pin}</button>
+            <button class="icon-btn" data-action="edit" title="Edit">${ICONS.edit}</button>
+            <button class="icon-btn danger" data-action="delete" title="Hapus">${ICONS.trash}</button>
           </div>
         `;
       }
 
       card.addEventListener('click', (e) => {
-        const action = e.target.closest('[data-action]')?.dataset.action;
+        const target = e.target.closest('[data-action]');
+        const action = target?.dataset.action;
         if (!action) return;
 
         if (action === 'copy') {
+          if (!(note.text || '').length) return;
           copyToClipboard(note.text || '');
-          const el = e.target;
-          el.classList.add('copied-flash');
-          setTimeout(() => el.classList.remove('copied-flash'), 300);
+          target.classList.add('copied-flash');
+          setTimeout(() => target.classList.remove('copied-flash'), 300);
+        } else if (action === 'copy-title') {
+          if (!(note.title || '').length) return;
+          copyToClipboard(note.title || '');
+          target.classList.add('copied-flash');
+          setTimeout(() => target.classList.remove('copied-flash'), 300);
+        } else if (action === 'view-image') {
+          openLightbox(target.dataset.url);
         } else if (action === 'pin') {
           keepRef.child(note.id).update({
             pinned: !note.pinned,
@@ -444,21 +723,31 @@
           render();
         } else if (action === 'cancel-edit') {
           editingId = null;
+          delete editDraftImages[note.id];
           render();
         } else if (action === 'save-edit') {
+          const titleInput = card.querySelector('.note-title-input');
           const textarea = card.querySelector('.note-edit-area');
+          const newTitle = titleInput.value.trim();
           const newText = textarea.value.trim();
-          if (newText) {
-            keepRef.child(note.id).update({
-              text: newText,
-              updatedAt: firebase.database.ServerValue.TIMESTAMP
-            });
+          const images = (editDraftImages[note.id] || []).filter(i => !i.uploading && i.url).map(i => i.url);
+          if (!newTitle && !newText && images.length === 0) {
+            showToast('Catatan kosong tidak disimpan');
+            return;
           }
+          const update = {
+            text: newText,
+            updatedAt: firebase.database.ServerValue.TIMESTAMP
+          };
+          update.title = newTitle || null;
+          update.images = images.length ? images : null;
+          keepRef.child(note.id).update(update);
           editingId = null;
+          delete editDraftImages[note.id];
         } else if (action === 'delete') {
           if (confirm('Hapus catatan ini?')) {
             keepRef.child(note.id).remove();
-            if (editingId === note.id) editingId = null;
+            if (editingId === note.id) { editingId = null; delete editDraftImages[note.id]; }
           }
         }
       });
