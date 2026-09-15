@@ -9,6 +9,12 @@
     --border-soft: rgba(255,255,255,0.08);
     --text-primary: #e8ecf3;
     --text-secondary: #9aa4b2;
+    --card-bg: #12162a;
+    --card-bg-hover: #171c34;
+    --accent: #6c8cff;
+    --accent-soft: rgba(108,140,255,0.15);
+    --danger: #ff6b6b;
+    --pin-color: #ffd166;
   }
   html, body{
     margin:0;
@@ -18,29 +24,447 @@
     color:var(--text-primary);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
   }
+  *{ box-sizing:border-box; }
   .keep-wrap{
-    box-sizing:border-box;
     width:100%;
     min-height:100%;
-    padding:20px;
+    padding:16px 16px 60px;
+  }
+
+  /* ---- Top bar ---- */
+  .keep-topbar{
+    max-width:720px;
+    margin:0 auto 26px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .keep-search{
+    width:100%;
+    background:var(--card-bg);
+    border:1px solid var(--border-soft);
+    border-radius:24px;
+    padding:10px 16px;
+    color:var(--text-primary);
+    font-size:14px;
+    outline:none;
+  }
+  .keep-search::placeholder{ color:var(--text-secondary); }
+
+  .composer{
+    background:var(--card-bg);
+    border:1px solid var(--border-soft);
+    border-radius:12px;
+    padding:12px 14px;
+    box-shadow:0 4px 14px rgba(0,0,0,0.25);
+  }
+  .composer textarea{
+    width:100%;
+    background:transparent;
+    border:none;
+    outline:none;
+    resize:none;
+    color:var(--text-primary);
+    font-size:14px;
+    font-family:inherit;
+    line-height:1.5;
+    min-height:22px;
+    max-height:260px;
+    overflow-y:auto;
+    display:block;
+  }
+  .composer textarea::placeholder{ color:var(--text-secondary); }
+  .composer-actions{
+    display:none;
+    justify-content:flex-end;
+    gap:8px;
+    margin-top:10px;
+  }
+  .composer.active .composer-actions{ display:flex; }
+
+  .btn{
+    border:none;
+    border-radius:8px;
+    padding:7px 14px;
+    font-size:13px;
+    cursor:pointer;
+    font-family:inherit;
+  }
+  .btn-save{ background:var(--accent); color:#fff; }
+  .btn-save:disabled{ opacity:.4; cursor:default; }
+  .btn-cancel{ background:transparent; color:var(--text-secondary); }
+  .btn-cancel:hover{ color:var(--text-primary); }
+
+  /* ---- Sections ---- */
+  .keep-section-title{
+    max-width:1100px;
+    margin:0 auto 10px;
+    font-size:11px;
+    letter-spacing:1px;
+    color:var(--text-secondary);
+    font-weight:600;
+    padding-left:4px;
+  }
+  .keep-grid{
+    max-width:1100px;
+    margin:0 auto 28px;
+    column-width:230px;
+    column-gap:14px;
   }
   .keep-empty{
     color:var(--text-secondary);
-    margin:0;
+    margin:40px auto;
     font-size:14px;
+    text-align:center;
+    max-width:400px;
+  }
+
+  /* ---- Note card ---- */
+  .note-card{
+    break-inside:avoid;
+    margin-bottom:14px;
+    background:var(--card-bg);
+    border:1px solid var(--border-soft);
+    border-radius:12px;
+    padding:12px 14px 8px;
+    transition:background .15s ease, border-color .15s ease;
+    position:relative;
+  }
+  .note-card:hover{ background:var(--card-bg-hover); border-color:rgba(255,255,255,0.16); }
+
+  .note-text{
+    white-space:pre-wrap;
+    word-break:break-word;
+    font-size:14px;
+    line-height:1.5;
+    cursor:pointer;
+    color:var(--text-primary);
+    min-height:20px;
+  }
+  .note-text.copied-flash{ color:var(--accent); }
+
+  .note-edit-area{
+    width:100%;
+    background:transparent;
+    border:none;
+    outline:none;
+    resize:none;
+    color:var(--text-primary);
+    font-size:14px;
+    font-family:inherit;
+    line-height:1.5;
+    min-height:20px;
+    overflow:hidden;
+  }
+
+  .note-toolbar{
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    gap:2px;
+    margin-top:8px;
+    opacity:0;
+    transition:opacity .12s ease;
+  }
+  .note-card:hover .note-toolbar,
+  .note-card.editing .note-toolbar{ opacity:1; }
+
+  .note-toolbar.editing-actions{
+    justify-content:space-between;
+  }
+
+  .icon-btn{
+    width:30px;
+    height:30px;
+    border-radius:50%;
+    border:none;
+    background:transparent;
+    color:var(--text-secondary);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    font-size:15px;
+  }
+  .icon-btn:hover{ background:rgba(255,255,255,0.08); color:var(--text-primary); }
+  .icon-btn.pinned{ color:var(--pin-color); }
+  .icon-btn.danger:hover{ color:var(--danger); }
+
+  .note-toast{
+    position:fixed;
+    bottom:24px;
+    left:50%;
+    transform:translateX(-50%) translateY(20px);
+    background:#1c2340;
+    color:var(--text-primary);
+    padding:10px 18px;
+    border-radius:8px;
+    font-size:13px;
+    border:1px solid var(--border-soft);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .2s ease, transform .2s ease;
+    z-index:999;
+    box-shadow:0 6px 20px rgba(0,0,0,0.4);
+  }
+  .note-toast.show{
+    opacity:1;
+    transform:translateX(-50%) translateY(0);
+  }
+
+  @media (max-width:480px){
+    .keep-grid{ column-width:100%; }
   }
 </style>
 </head>
 <body>
   <div class="keep-wrap">
-    <!--
-      Konten menu "KEEP" ditulis di sini. File ini ditampilkan lewat
-      iframe di dalam index.html (menu "KEEP" pada sidebar), mengikuti
-      pola yang sama seperti arsip.html / generate-password.html /
-      harian-dashboard.html. Untuk mengubah isi menu KEEP, cukup edit
-      file ini — TIDAK perlu mengubah index.html.
-    -->
-    <p class="keep-empty">Konten menu KEEP belum diisi.</p>
+    <div class="keep-topbar">
+      <input type="text" class="keep-search" id="searchInput" placeholder="Telusuri catatan...">
+      <div class="composer" id="composer">
+        <textarea id="composerInput" placeholder="Buat catatan..." rows="1"></textarea>
+        <div class="composer-actions">
+          <button class="btn btn-cancel" id="composerCancel">Batal</button>
+          <button class="btn btn-save" id="composerSave">Simpan</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="pinnedSection" style="display:none;">
+      <div class="keep-section-title">DISEMATKAN</div>
+      <div class="keep-grid" id="pinnedGrid"></div>
+    </div>
+
+    <div id="othersSection" style="display:none;">
+      <div class="keep-section-title" id="othersTitle">CATATAN LAINNYA</div>
+      <div class="keep-grid" id="othersGrid"></div>
+    </div>
+
+    <p class="keep-empty" id="emptyState">Belum ada catatan. Tulis sesuatu di atas untuk mulai.</p>
   </div>
+
+  <div class="note-toast" id="toast">Disalin ke clipboard</div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script>
+    // =====================================================================
+    // GANTI dengan konfigurasi Firebase project "datapenting888" yang sama
+    // dipakai di index.html / chat.html. Silakan tempel objek firebaseConfig
+    // yang asli di sini.
+    // =====================================================================
+    const firebaseConfig = {
+      apiKey: "GANTI_API_KEY",
+      authDomain: "datapenting888.firebaseapp.com",
+      databaseURL: "https://datapenting888-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "datapenting888",
+      storageBucket: "datapenting888.appspot.com",
+      messagingSenderId: "GANTI_SENDER_ID",
+      appId: "GANTI_APP_ID"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const keepRef = db.ref('keep');
+
+    let notesCache = {};
+    let searchTerm = '';
+    let editingId = null;
+
+    // ---------- Helpers ----------
+    function escapeHtml(str){
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function showToast(msg){
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => toast.classList.remove('show'), 1600);
+    }
+
+    function copyToClipboard(text){
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => showToast('Disalin ke clipboard'));
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); showToast('Disalin ke clipboard'); } catch(e){}
+        document.body.removeChild(ta);
+      }
+    }
+
+    function autoResize(el){
+      el.style.height = 'auto';
+      el.style.height = el.scrollHeight + 'px';
+    }
+
+    // ---------- Composer (tambah catatan baru) ----------
+    const composer = document.getElementById('composer');
+    const composerInput = document.getElementById('composerInput');
+    const composerSave = document.getElementById('composerSave');
+    const composerCancel = document.getElementById('composerCancel');
+
+    composerInput.addEventListener('input', () => {
+      autoResize(composerInput);
+      composerSave.disabled = composerInput.value.trim().length === 0;
+    });
+
+    composerInput.addEventListener('focus', () => {
+      composer.classList.add('active');
+    });
+
+    composerSave.addEventListener('click', () => {
+      const text = composerInput.value.trim();
+      if (!text) return;
+      const newRef = keepRef.push();
+      newRef.set({
+        text: text,
+        pinned: false,
+        createdAt: firebase.database.ServerValue.TIMESTAMP,
+        updatedAt: firebase.database.ServerValue.TIMESTAMP
+      });
+      resetComposer();
+    });
+
+    composerCancel.addEventListener('click', resetComposer);
+
+    function resetComposer(){
+      composerInput.value = '';
+      composerInput.style.height = 'auto';
+      composer.classList.remove('active');
+      composerSave.disabled = true;
+    }
+
+    // ---------- Search ----------
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+      searchTerm = e.target.value.trim().toLowerCase();
+      render();
+    });
+
+    // ---------- Firebase listener ----------
+    keepRef.on('value', (snapshot) => {
+      notesCache = snapshot.val() || {};
+      render();
+    });
+
+    // ---------- Render ----------
+    function render(){
+      const pinnedGrid = document.getElementById('pinnedGrid');
+      const othersGrid = document.getElementById('othersGrid');
+      const pinnedSection = document.getElementById('pinnedSection');
+      const othersSection = document.getElementById('othersSection');
+      const othersTitle = document.getElementById('othersTitle');
+      const emptyState = document.getElementById('emptyState');
+
+      pinnedGrid.innerHTML = '';
+      othersGrid.innerHTML = '';
+
+      let entries = Object.keys(notesCache).map(id => ({ id, ...notesCache[id] }));
+
+      if (searchTerm) {
+        entries = entries.filter(n => (n.text || '').toLowerCase().includes(searchTerm));
+      }
+
+      entries.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
+      const pinned = entries.filter(n => n.pinned);
+      const others = entries.filter(n => !n.pinned);
+
+      pinnedSection.style.display = pinned.length ? 'block' : 'none';
+      pinned.forEach(n => pinnedGrid.appendChild(buildCard(n)));
+
+      othersSection.style.display = others.length ? 'block' : 'none';
+      othersTitle.style.display = pinned.length ? 'block' : 'none';
+      others.forEach(n => othersGrid.appendChild(buildCard(n)));
+
+      emptyState.style.display = entries.length === 0 ? 'block' : 'none';
+      if (entries.length === 0 && searchTerm) {
+        emptyState.textContent = 'Tidak ada catatan yang cocok.';
+      } else if (entries.length === 0) {
+        emptyState.textContent = 'Belum ada catatan. Tulis sesuatu di atas untuk mulai.';
+      }
+    }
+
+    function buildCard(note){
+      const card = document.createElement('div');
+      card.className = 'note-card';
+      card.dataset.id = note.id;
+
+      if (editingId === note.id) {
+        card.classList.add('editing');
+        card.innerHTML = `
+          <textarea class="note-edit-area">${escapeHtml(note.text || '')}</textarea>
+          <div class="note-toolbar editing-actions">
+            <button class="icon-btn danger" data-action="delete" title="Hapus">🗑</button>
+            <div>
+              <button class="btn btn-cancel" data-action="cancel-edit">Batal</button>
+              <button class="btn btn-save" data-action="save-edit">Simpan</button>
+            </div>
+          </div>
+        `;
+        const textarea = card.querySelector('.note-edit-area');
+        requestAnimationFrame(() => { autoResize(textarea); textarea.focus(); });
+        textarea.addEventListener('input', () => autoResize(textarea));
+      } else {
+        card.innerHTML = `
+          <div class="note-text" data-action="copy">${escapeHtml(note.text || '')}</div>
+          <div class="note-toolbar">
+            <button class="icon-btn ${note.pinned ? 'pinned' : ''}" data-action="pin" title="Sematkan">📌</button>
+            <button class="icon-btn" data-action="edit" title="Edit">✏️</button>
+            <button class="icon-btn danger" data-action="delete" title="Hapus">🗑</button>
+          </div>
+        `;
+      }
+
+      card.addEventListener('click', (e) => {
+        const action = e.target.closest('[data-action]')?.dataset.action;
+        if (!action) return;
+
+        if (action === 'copy') {
+          copyToClipboard(note.text || '');
+          const el = e.target;
+          el.classList.add('copied-flash');
+          setTimeout(() => el.classList.remove('copied-flash'), 300);
+        } else if (action === 'pin') {
+          keepRef.child(note.id).update({
+            pinned: !note.pinned,
+            updatedAt: firebase.database.ServerValue.TIMESTAMP
+          });
+        } else if (action === 'edit') {
+          editingId = note.id;
+          render();
+        } else if (action === 'cancel-edit') {
+          editingId = null;
+          render();
+        } else if (action === 'save-edit') {
+          const textarea = card.querySelector('.note-edit-area');
+          const newText = textarea.value.trim();
+          if (newText) {
+            keepRef.child(note.id).update({
+              text: newText,
+              updatedAt: firebase.database.ServerValue.TIMESTAMP
+            });
+          }
+          editingId = null;
+        } else if (action === 'delete') {
+          if (confirm('Hapus catatan ini?')) {
+            keepRef.child(note.id).remove();
+            if (editingId === note.id) editingId = null;
+          }
+        }
+      });
+
+      return card;
+    }
+  </script>
 </body>
 </html>
