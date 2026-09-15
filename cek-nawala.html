@@ -64,6 +64,72 @@
     display:block;
     background:#fff;
   }
+  .cn-fallback{
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    height:100%;
+    padding:32px 20px;
+    gap:6px;
+  }
+  .cn-fallback.cn-fallback-show{ display:flex; }
+  .cn-fallback-icon{
+    width:56px;
+    height:56px;
+    border-radius:50%;
+    border:2px solid #f56565;
+    color:#f56565;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:28px;
+    margin-bottom:14px;
+  }
+  .cn-fallback-title{
+    font-family:'Bree Serif', serif;
+    font-size:17px;
+    color:var(--text-light);
+    margin:0 0 8px;
+    max-width:320px;
+    line-height:1.4;
+  }
+  .cn-fallback-desc{
+    font-size:13px;
+    color:#9a9aa8;
+    max-width:320px;
+    line-height:1.6;
+    margin:0 0 20px;
+  }
+  .cn-fallback-actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    justify-content:center;
+  }
+  .cn-btn{
+    font-family:'Segoe UI', Arial, sans-serif;
+    font-size:14px;
+    padding:9px 18px;
+    border-radius:8px;
+    cursor:pointer;
+    text-decoration:none;
+    border:1px solid transparent;
+  }
+  .cn-btn-primary{
+    background: var(--accent-ungu);
+    color:#0a0d1a;
+    font-weight:600;
+    border-color: var(--accent-ungu);
+  }
+  .cn-btn-primary:hover{ opacity:0.9; }
+  .cn-btn-secondary{
+    background:transparent;
+    color: var(--text-light);
+    border-color: var(--border-soft);
+  }
+  .cn-btn-secondary:hover{ border-color: var(--accent-ungu); color: var(--accent-ungu); }
 </style>
 </head>
 <body>
@@ -80,6 +146,13 @@
     cadangan supaya tetap bisa dibuka di tab baru. Ganti href di tombol itu
     SEKALIGUS src iframe di bawah kalau alamat nawala.asia berubah / tidak
     berfungsi lagi.
+
+    Khusus Android: browser Android (WebView/Chrome Android) diketahui TIDAK
+    bisa menampilkan embed situs ini sama sekali (selalu blank), jadi di
+    Android iframe tidak dicoba dimuat sama sekali -- yang tampil langsung
+    layar fallback "Buka di Tab Baru" / "Coba Lagi" (lihat script di bawah,
+    deteksi lewat navigator.userAgent). Tombol "Coba Lagi" tetap ada untuk
+    jaga-jaga andaikan suatu saat situsnya sudah mendukung embed lagi.
   -->
   <div class="cn-topbar">
     <span class="cn-info">Menampilkan situs Cek Nawala langsung di dalam dashboard.</span>
@@ -90,11 +163,63 @@
 
   <div class="cn-frame-wrap">
     <iframe
+      id="cnIframe"
       src="https://trustpositif.smbgroup.io/"
       title="Cek Nawala"
       referrerpolicy="no-referrer-when-downgrade">
     </iframe>
+
+    <div class="cn-fallback" id="cnFallback">
+      <div class="cn-fallback-icon">&#9940;</div>
+      <p class="cn-fallback-title">Situs Cek Nawala tidak bisa ditampilkan di dalam dashboard ini.</p>
+      <p class="cn-fallback-desc">Nawala.asia memblokir tampilan embed (iframe) dari browser Anda, sehingga muncul layar kosong/putih. Silakan buka langsung di tab baru.</p>
+      <div class="cn-fallback-actions">
+        <a class="cn-btn cn-btn-primary" href="https://trustpositif.smbgroup.io/" target="_blank" rel="noopener noreferrer">Buka di Tab Baru</a>
+        <button class="cn-btn cn-btn-secondary" id="cnRetryBtn" type="button">Coba Lagi</button>
+      </div>
+    </div>
   </div>
+
+  <script>
+    (function(){
+      var iframe = document.getElementById('cnIframe');
+      var fallback = document.getElementById('cnFallback');
+      var retryBtn = document.getElementById('cnRetryBtn');
+      var isAndroid = /Android/i.test(navigator.userAgent);
+
+      function showFallback(){
+        iframe.style.display = 'none';
+        fallback.classList.add('cn-fallback-show');
+      }
+
+      function tryLoadIframe(){
+        fallback.classList.remove('cn-fallback-show');
+        iframe.style.display = 'block';
+        // paksa reload src supaya percobaan baru
+        iframe.src = 'about:blank';
+        setTimeout(function(){
+          iframe.src = 'https://trustpositif.smbgroup.io/';
+        }, 50);
+      }
+
+      if (isAndroid){
+        // Android sudah diketahui selalu diblokir -- langsung tampilkan
+        // fallback, tanpa mencoba memuat iframe sama sekali.
+        showFallback();
+      }
+
+      retryBtn.addEventListener('click', function(){
+        if (isAndroid){
+          // Tetap izinkan user mencoba manual kalau mau, jaga-jaga situsnya
+          // sudah mendukung embed lagi.
+          tryLoadIframe();
+          setTimeout(showFallback, 4000);
+        } else {
+          tryLoadIframe();
+        }
+      });
+    })();
+  </script>
 
 </body>
 </html>
