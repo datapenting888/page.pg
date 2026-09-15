@@ -4404,6 +4404,9 @@
       text-align:right;
       white-space:normal;
       word-break:break-word;
+      position:relative;
+      cursor:pointer;
+      -webkit-tap-highlight-color:rgba(230,190,80,.25);
     }
     .hasil-scope .jadwal-table tr td:last-child {
       border-bottom:none;
@@ -4422,6 +4425,7 @@
     .hasil-scope .jadwal-table td[data-label="Cek"] {
       justify-content:flex-start;
       flex-direction:row-reverse;
+      cursor:default;
     }
     .hasil-scope .jadwal-table td[data-label="Cek"]::before {
       margin-left:8px;
@@ -4434,6 +4438,28 @@
       max-width:60%;
       overflow:hidden;
       text-overflow:ellipsis;
+    }
+    /* Tap 1 sel = otomatis tersalin ke clipboard (lihat JS: klik area sel
+       yang BUKAN ikon pensil = salin isi sel; klik ikon pensil = masuk
+       mode edit untuk kolom yang memang bisa diedit). */
+    .hasil-scope .jadwal-table td.jadwal-editable {
+      padding-right:26px;
+    }
+    .hasil-scope .jadwal-table td.jadwal-editable::after {
+      content:"\270E";
+      position:absolute;
+      right:4px;
+      top:50%;
+      transform:translateY(-50%);
+      font-size:12px;
+      line-height:1;
+      color:var(--ink-faint);
+      opacity:.75;
+      pointer-events:none;
+    }
+    .hasil-scope .jadwal-table td.jd-copied {
+      background:rgba(95,206,143,.32) !important;
+      transition:background .15s ease;
     }
   }
 
@@ -5629,9 +5655,18 @@ jadwalBody.addEventListener('change', (e) => {
   }
 });
 
-// Kolom "Link Website": klik sekali langsung membuka link di tab baru,
-// klik dua kali untuk masuk mode edit (mengganti isi kotak).
+// Lebar layar <=620px = tampilan kartu mobile (lihat media query CSS
+// terkait). Di ukuran ini perilaku tap pada tabel Jadwal Pasaran diganti:
+// tap sel = salin isi sel, tap ikon pensil = masuk mode edit.
+function isJadwalMobile(){
+  return window.matchMedia('(max-width:620px)').matches;
+}
+
+// Kolom "Link Website" di desktop: klik sekali langsung membuka link di
+// tab baru, klik dua kali untuk masuk mode edit (mengganti isi kotak).
+// Di mobile, kedua perilaku ini nonaktif -- diganti tap-to-copy di bawah.
 jadwalBody.addEventListener('click', (e) => {
+  if (isJadwalMobile()) return;
   const cell = e.target.closest('.jadwal-website');
   if (!cell) return;
   const raw = cell.textContent.trim();
@@ -5643,6 +5678,7 @@ jadwalBody.addEventListener('click', (e) => {
 });
 
 jadwalBody.addEventListener('dblclick', (e) => {
+  if (isJadwalMobile()) return;
   const cell = e.target.closest('.jadwal-website');
   if (!cell) return;
   cell.focus();
@@ -5652,6 +5688,81 @@ jadwalBody.addEventListener('dblclick', (e) => {
   const sel = window.getSelection();
   sel.removeAllRanges();
   sel.addRange(range);
+});
+
+// ===== Mobile: tap 1 sel = otomatis tersalin ke clipboard =====
+// Kolom yang bisa diedit (Jam Tutup, Result, Jadwal, Link Website) tetap
+// bisa diedit lewat ikon pensil kecil di sisi kanan sel (lihat CSS
+// ::after pada .jadwal-editable) -- tap di luar zona ikon itu = salin.
+function salinSelJadwal(teks, td){
+  function tandai(){
+    if (!td) return;
+    td.classList.add('jd-copied');
+    setTimeout(() => td.classList.remove('jd-copied'), 700);
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(teks).then(tandai).catch(() => {
+      salinFallback(teks);
+      tandai();
+    });
+  } else {
+    salinFallback(teks);
+    tandai();
+  }
+}
+
+// Set/lepas contentEditable sesuai mode (mobile: nonaktif sampai ikon
+// pensil ditekan; desktop: selalu aktif seperti semula).
+function syncJadwalEditableMode(){
+  const mobile = isJadwalMobile();
+  jadwalBody.querySelectorAll('.jadwal-editable').forEach((td) => {
+    td.contentEditable = mobile ? 'false' : 'true';
+  });
+}
+syncJadwalEditableMode();
+const jadwalMobileMql = window.matchMedia('(max-width:620px)');
+if (jadwalMobileMql.addEventListener) {
+  jadwalMobileMql.addEventListener('change', syncJadwalEditableMode);
+} else if (jadwalMobileMql.addListener) {
+  jadwalMobileMql.addListener(syncJadwalEditableMode);
+}
+
+jadwalBody.addEventListener('click', (e) => {
+  if (!isJadwalMobile()) return;
+  const td = e.target.closest('td');
+  if (!td) return;
+  if (td.querySelector('input[type="checkbox"]')) return; // kolom Cek: biarkan toggle biasa
+
+  if (td.classList.contains('jadwal-editable')) {
+    const rect = td.getBoundingClientRect();
+    const zonaIkonPensil = rect.right - 32;
+    if (e.clientX >= zonaIkonPensil) {
+      // Tap di zona ikon pensil -> masuk mode edit
+      e.preventDefault();
+      e.stopPropagation();
+      td.contentEditable = 'true';
+      td.focus();
+      const range = document.createRange();
+      range.selectNodeContents(td);
+      range.collapse(false);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      return;
+    }
+  }
+
+  const teks = td.textContent.trim();
+  if (!teks) return;
+  salinSelJadwal(teks, td);
+});
+
+// Setelah selesai edit lewat ikon pensil (mobile), kembalikan sel ke mode
+// tap-to-copy supaya tap berikutnya menyalin lagi, bukan membuka keyboard.
+jadwalBody.addEventListener('focusout', (e) => {
+  if (!isJadwalMobile()) return;
+  const td = e.target.closest && e.target.closest('.jadwal-editable');
+  if (td) td.contentEditable = 'false';
 });
 
 // Real-time: setiap perubahan pada kolom Jam Tutup, Result, atau Jadwal langsung disimpan
