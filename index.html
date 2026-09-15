@@ -4395,6 +4395,10 @@
       background:rgba(95,206,143,.32) !important;
       transition:background .15s ease;
     }
+    .hasil-scope .jadwal-table tr.jd-copied td {
+      background:rgba(95,206,143,.28) !important;
+      transition:background .15s ease;
+    }
   }
 
   /* ===== HITUNGAN TOTO SINGAPORE ===== */
@@ -5624,25 +5628,40 @@ jadwalBody.addEventListener('dblclick', (e) => {
   sel.addRange(range);
 });
 
-// ===== Mobile: tap 1 sel = otomatis tersalin ke clipboard =====
+// ===== Mobile: tap kolom Nama Pasaran/Jam Tutup/Result/Jadwal/Hasil =====
+// = otomatis tersalin SATU BARIS itu semua (gabungan semua kolom, kecuali
+// Cek). Khusus kolom Link Website: tap = salin LINK itu saja (bukan satu
+// baris), supaya tetap gampang dipakai buat paste link doang.
 // Kolom yang bisa diedit (Jam Tutup, Result, Jadwal, Link Website) tetap
 // bisa diedit lewat ikon pensil kecil di sisi kanan sel (lihat CSS
 // ::after pada .jadwal-editable) -- tap di luar zona ikon itu = salin.
-function salinSelJadwal(teks, td){
-  function tandai(){
-    if (!td) return;
-    td.classList.add('jd-copied');
-    setTimeout(() => td.classList.remove('jd-copied'), 700);
-  }
+function tandaiTersalinJadwal(target){
+  if (!target) return;
+  target.classList.add('jd-copied');
+  setTimeout(() => target.classList.remove('jd-copied'), 700);
+}
+function salinTeksJadwal(teks, target){
   if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(teks).then(tandai).catch(() => {
+    navigator.clipboard.writeText(teks).then(() => tandaiTersalinJadwal(target)).catch(() => {
       salinFallback(teks);
-      tandai();
+      tandaiTersalinJadwal(target);
     });
   } else {
     salinFallback(teks);
-    tandai();
+    tandaiTersalinJadwal(target);
   }
+}
+// Kumpulkan teks 1 baris jadwal (Nama Pasaran, Jam Tutup, Result, Jadwal,
+// Hasil, Link Website -- kolom Cek dilewati), baris kosong ikut dilewati.
+function kumpulkanBarisJadwal(tr){
+  const urutanLabel = ['Nama Pasaran', 'Jam Tutup', 'Result', 'Jadwal', 'Hasil', 'Link Website'];
+  return urutanLabel
+    .map((lbl) => {
+      const el = tr.querySelector(`td[data-label="${lbl}"]`);
+      return el ? el.textContent.trim() : '';
+    })
+    .filter((v) => v !== '')
+    .join('\n');
 }
 
 // Set/lepas contentEditable sesuai mode (mobile: nonaktif sampai ikon
@@ -5688,7 +5707,16 @@ jadwalBody.addEventListener('click', (e) => {
 
   const teks = td.textContent.trim();
   if (!teks) return;
-  salinSelJadwal(teks, td);
+
+  const label = td.getAttribute('data-label');
+  if (label === 'Link Website') {
+    salinTeksJadwal(teks, td);
+    return;
+  }
+
+  const tr = td.closest('tr');
+  const teksBaris = tr ? kumpulkanBarisJadwal(tr) : teks;
+  salinTeksJadwal(teksBaris || teks, tr || td);
 });
 
 // Setelah selesai edit lewat ikon pensil (mobile), kembalikan sel ke mode
