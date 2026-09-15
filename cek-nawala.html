@@ -63,65 +63,6 @@
     border:0;
     display:block;
     background:#fff;
-    position:relative;
-    z-index:1;
-  }
-  .cn-fallback{
-    position:absolute;
-    inset:0;
-    display:none;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    text-align:center;
-    gap:14px;
-    padding:32px 20px;
-    background: var(--bg-panel);
-    z-index:2;
-  }
-  .cn-fallback.show{ display:flex; }
-  .cn-fallback-icon{
-    font-size:34px;
-    opacity:0.7;
-  }
-  .cn-fallback-title{
-    font-family:'Bree Serif', serif;
-    font-size:16px;
-    color: var(--text-light);
-    max-width:360px;
-    line-height:1.5;
-  }
-  .cn-fallback-sub{
-    font-size:13px;
-    color:#9a9aa8;
-    max-width:340px;
-    line-height:1.5;
-  }
-  .cn-fallback-actions{
-    display:flex;
-    gap:10px;
-    margin-top:6px;
-    flex-wrap:wrap;
-    justify-content:center;
-  }
-  .cn-btn{
-    font-family:'Segoe UI', Arial, sans-serif;
-    font-size:14px;
-    font-weight:600;
-    text-decoration:none;
-    padding:10px 18px;
-    border-radius:8px;
-    cursor:pointer;
-    border:1px solid var(--border-soft);
-  }
-  .cn-btn-primary{
-    background: var(--accent-ungu);
-    color:#0a0d1a;
-    border-color: var(--accent-ungu);
-  }
-  .cn-btn-secondary{
-    background:transparent;
-    color: var(--text-light);
   }
 </style>
 </head>
@@ -135,22 +76,10 @@
     mengubah index.html.
 
     Kalau iframe di bawah gagal tampil (kosong/blank), biasanya karena situs
-    tujuan memblokir tampilan embed (iframe) lewat header X-Frame-Options /
-    Content-Security-Policy: frame-ancestors. Ini pemblokiran dari SISI SITUS
-    TUJUAN, jadi tidak bisa "diperbaiki" lewat kode di file ini -- browser
-    (terutama Chrome Android) akan menampilkan area kosong/putih polos tanpa
-    pesan error apa pun.
-
-    Untuk mengatasinya, skrip di bawah memakai heuristik sederhana: kalau
-    event "load" pada iframe terpicu terlalu cepat (di bawah CN_FAST_LOAD_MS)
-    atau malah tidak pernah terpicu sampai CN_TIMEOUT_MS, kemungkinan besar
-    iframe diblokir / gagal -- maka panel fallback ditampilkan otomatis,
-    berisi tombol besar untuk membuka nawala.asia di tab baru. Kalau iframe
-    berhasil tampil normal, fallback tetap tersembunyi.
-
-    Tombol panah di kanan atas + tombol di dalam panel fallback keduanya
-    membuka tab baru. Ganti SEMUA kemunculan URL nawala.asia di file ini
-    kalau alamatnya berubah / tidak berfungsi lagi.
+    tujuan memblokir tampilan embed (iframe). Tombol panah di kanan atas jadi
+    cadangan supaya tetap bisa dibuka di tab baru. Ganti href di tombol itu
+    SEKALIGUS src iframe di bawah kalau alamat nawala.asia berubah / tidak
+    berfungsi lagi.
   -->
   <div class="cn-topbar">
     <span class="cn-info">Menampilkan situs Cek Nawala langsung di dalam dashboard.</span>
@@ -159,76 +88,13 @@
     </a>
   </div>
 
-  <div class="cn-frame-wrap" id="cnFrameWrap">
+  <div class="cn-frame-wrap">
     <iframe
-      id="cnFrame"
       src="https://www.nawala.asia/"
       title="Cek Nawala"
       referrerpolicy="no-referrer-when-downgrade">
     </iframe>
-
-    <div class="cn-fallback" id="cnFallback">
-      <div class="cn-fallback-icon">&#128683;</div>
-      <div class="cn-fallback-title">Situs Cek Nawala tidak bisa ditampilkan di dalam dashboard ini.</div>
-      <div class="cn-fallback-sub">Nawala.asia memblokir tampilan embed (iframe) dari browser Anda, sehingga muncul layar kosong/putih. Silakan buka langsung di tab baru.</div>
-      <div class="cn-fallback-actions">
-        <a class="cn-btn cn-btn-primary" href="https://www.nawala.asia/" target="_blank" rel="noopener noreferrer">Buka di Tab Baru</a>
-        <button class="cn-btn cn-btn-secondary" id="cnRetryBtn" type="button">Coba Lagi</button>
-      </div>
-    </div>
   </div>
-
-  <script>
-    (function(){
-      var CN_URL = "https://www.nawala.asia/";
-      var CN_FAST_LOAD_MS = 900;   // load yang lebih cepat dari ini dicurigai diblokir
-      var CN_TIMEOUT_MS = 6000;    // kalau load tidak terpicu sama sekali dalam waktu ini
-
-      var frame = document.getElementById('cnFrame');
-      var fallback = document.getElementById('cnFallback');
-      var retryBtn = document.getElementById('cnRetryBtn');
-
-      var startTime, timeoutId, loaded;
-
-      function showFallback(){
-        fallback.classList.add('show');
-      }
-
-      function hideFallback(){
-        fallback.classList.remove('show');
-      }
-
-      function startWatch(){
-        loaded = false;
-        hideFallback();
-        startTime = Date.now();
-
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(function(){
-          if (!loaded) showFallback();
-        }, CN_TIMEOUT_MS);
-      }
-
-      frame.addEventListener('load', function(){
-        loaded = true;
-        clearTimeout(timeoutId);
-        var elapsed = Date.now() - startTime;
-        if (elapsed < CN_FAST_LOAD_MS) {
-          // Load selesai terlalu cepat untuk halaman situs sungguhan --
-          // kemungkinan besar diblokir (X-Frame-Options / CSP) dan isinya kosong.
-          showFallback();
-        }
-      });
-
-      retryBtn.addEventListener('click', function(){
-        startWatch();
-        // paksa reload iframe
-        frame.src = CN_URL + (CN_URL.indexOf('?') > -1 ? '&' : '?') + '_r=' + Date.now();
-      });
-
-      startWatch();
-    })();
-  </script>
 
 </body>
 </html>
