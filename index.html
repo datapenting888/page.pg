@@ -5368,6 +5368,13 @@ const jadwalSaved = loadJadwalStorage();
 const jadwalSavedDate = localStorage.getItem(JADWAL_DATE_KEY);
 const jadwalDayChanged = jadwalSavedDate !== getTodayStr();
 
+// Menyimpan nilai teks (Jam Tutup/Result/Jadwal/Link) yang TERAKHIR benar-benar
+// tersimpan (lewat tombol "Simpan Data" atau lewat sinkron Firebase dari
+// perangkat lain). Selama belum diklik "Simpan Data", ketikan baru di sel
+// contenteditable HANYA mengubah tampilan di layar, tidak menyentuh baseline
+// ini -- sehingga refresh/reload akan kembali ke baseline (data semula).
+const jadwalBaseline = [];
+
 dataJadwal.forEach((row, idx) => {
   const saved = jadwalSaved[idx] || {};
   const tutup = saved.tutup !== undefined ? saved.tutup : row[1];
@@ -5376,6 +5383,8 @@ dataJadwal.forEach((row, idx) => {
   // Checkbox otomatis terhapus (tidak dipulihkan) jika sudah pergantian hari
   const checked = jadwalDayChanged ? false : !!saved.checked;
   const link = saved.link !== undefined ? saved.link : '';
+
+  jadwalBaseline.push({ tutup, result, jadwal, link });
 
   const tr = document.createElement('tr');
   tr.innerHTML = `
@@ -5415,23 +5424,64 @@ function applyJadwalData(saved) {
         hasilCell.classList.remove('jadwal-result');
       }
     }
+    // Data yang datang dari sini (localStorage/Firebase) sudah berstatus
+    // "tersimpan", jadi baseline ikut dimutakhirkan.
+    if (jadwalBaseline[idx]) {
+      if (data.tutup !== undefined) jadwalBaseline[idx].tutup = data.tutup;
+      if (data.result !== undefined) jadwalBaseline[idx].result = data.result;
+      if (data.jadwal !== undefined) jadwalBaseline[idx].jadwal = data.jadwal;
+      if (data.link !== undefined) jadwalBaseline[idx].link = data.link;
+    }
   });
 }
 
-// Kumpulkan seluruh isi tabel Jadwal Pasaran lalu simpan ke localStorage
-function simpanJadwalData() {
+// Kumpulkan isi tabel Jadwal Pasaran lalu simpan ke localStorage.
+// - textFromDom = true  -> teks (Jam Tutup/Result/Jadwal/Link) diambil dari
+//   tampilan saat ini (dipakai HANYA saat tombol "Simpan Data" diklik, supaya
+//   ketikan yang belum disimpan baru resmi menjadi data permanen).
+// - textFromDom = false -> teks diambil dari baseline (data yang terakhir
+//   benar-benar tersimpan), dipakai untuk perubahan checkbox/hari yang tidak
+//   boleh ikut "menyimpan diam-diam" ketikan yang belum diklik simpan.
+function kumpulkanJadwalData(textFromDom) {
   const rows = jadwalBody.querySelectorAll('tr');
   const data = [];
-  rows.forEach((tr) => {
-    const editable = tr.querySelectorAll('.jadwal-editable');
+  rows.forEach((tr, idx) => {
     const checkbox = tr.querySelector('input[type="checkbox"]');
-    data.push({
-      tutup: editable[0] ? editable[0].textContent.trim() : '',
-      result: editable[1] ? editable[1].textContent.trim() : '',
-      jadwal: editable[2] ? editable[2].textContent.trim() : '',
-      link: editable[3] ? editable[3].textContent.trim() : '',
-      checked: checkbox ? checkbox.checked : false
-    });
+    if (textFromDom) {
+      const editable = tr.querySelectorAll('.jadwal-editable');
+      data.push({
+        tutup: editable[0] ? editable[0].textContent.trim() : '',
+        result: editable[1] ? editable[1].textContent.trim() : '',
+        jadwal: editable[2] ? editable[2].textContent.trim() : '',
+        link: editable[3] ? editable[3].textContent.trim() : '',
+        checked: checkbox ? checkbox.checked : false
+      });
+    } else {
+      const base = jadwalBaseline[idx] || {};
+      data.push({
+        tutup: base.tutup || '',
+        result: base.result || '',
+        jadwal: base.jadwal || '',
+        link: base.link || '',
+        checked: checkbox ? checkbox.checked : false
+      });
+    }
+  });
+  return data;
+}
+
+// Dipanggil HANYA saat tombol "Simpan Data" diklik (atau saat inisialisasi
+// halaman/normalisasi pergantian hari): mengambil teks dari tampilan saat ini
+// dan menjadikannya baseline baru yang permanen.
+function simpanJadwalData() {
+  const data = kumpulkanJadwalData(true);
+  data.forEach((d, idx) => {
+    if (jadwalBaseline[idx]) {
+      jadwalBaseline[idx].tutup = d.tutup;
+      jadwalBaseline[idx].result = d.result;
+      jadwalBaseline[idx].jadwal = d.jadwal;
+      jadwalBaseline[idx].link = d.link;
+    }
   });
   localStorage.setItem(JADWAL_STORAGE_KEY, JSON.stringify(data));
   localStorage.setItem(JADWAL_DATE_KEY, getTodayStr());
@@ -5584,10 +5634,15 @@ jadwalBody.addEventListener('change', (e) => {
       hasilCell.textContent = 'BELUM RESULT';
       hasilCell.classList.remove('jadwal-result');
     }
-    simpanJadwalData();
+    // Pakai teks dari baseline (bukan tampilan layar) supaya ketikan yang
+    // belum diklik "Simpan Data" tidak ikut tersimpan permanen hanya gara-gara
+    // centang diklik.
+    const jadwalDataCentang = kumpulkanJadwalData(false);
+    localStorage.setItem(JADWAL_STORAGE_KEY, JSON.stringify(jadwalDataCentang));
+    localStorage.setItem(JADWAL_DATE_KEY, getTodayStr());
     // Kirim langsung ke Firebase supaya centang real-time tersinkron
     // ke semua browser/perangkat lain, tidak menunggu tombol "Simpan Data".
-    kirimDataKeFirebase().catch((err) => {
+    kirimDataKeFirebase(jadwalDataCentang).catch((err) => {
       console.error('[Firebase] Gagal sinkron otomatis (checkbox):', err);
     });
   }
@@ -5727,46 +5782,34 @@ jadwalBody.addEventListener('focusout', (e) => {
   if (td) td.contentEditable = 'false';
 });
 
-// Real-time: setiap perubahan pada kolom Jam Tutup, Result, atau Jadwal langsung disimpan
-let jadwalEditableSyncTimer = null;
+// Kolom Jam Tutup/Result/Jadwal/Link Website: ketikan HANYA mengubah tampilan
+// di layar. Belum disimpan ke localStorage/Firebase sama sekali sampai
+// tombol "Simpan Data" diklik -- jadi kalau halaman di-refresh/reload
+// sebelum itu, isinya otomatis kembali seperti semula (baseline terakhir).
 jadwalBody.addEventListener('input', (e) => {
   if (e.target.classList.contains('jadwal-editable')) {
-    simpanJadwalData();
     // Cek ulang apakah Jam Tutup & Result pasaran DST sudah dimutakhirkan,
-    // supaya peringatan langsung hilang begitu semuanya sudah diubah.
+    // supaya peringatan langsung hilang begitu semuanya sudah diubah
+    // (ini hanya baca tampilan, tidak menyimpan apa pun).
     updateDstWarningVisibility();
     updateDstWarningMaretVisibility();
-    // Kirim ke Firebase dengan sedikit jeda (debounce) agar tidak spam
-    // request saat user sedang mengetik, tapi tetap tersinkron otomatis.
-    clearTimeout(jadwalEditableSyncTimer);
-    jadwalEditableSyncTimer = setTimeout(() => {
-      kirimDataKeFirebase().catch((err) => {
-        console.error('[Firebase] Gagal sinkron otomatis (jadwal):', err);
-      });
-    }, 800);
   }
 });
 
 // Kirim data Jadwal Pasaran & Shio yang sedang tampil ke Firebase Realtime Database.
 // Mengembalikan Promise supaya tombol "Simpan Data" tahu persis apakah kirimnya
 // benar-benar berhasil atau gagal (tidak lagi berpura-pura sukses).
-function kirimDataKeFirebase() {
+// jadwalDataOverride (opsional): kalau diisi, data itu yang dikirim apa
+// adanya (dipakai saat centang diklik, supaya ketikan yang belum disimpan
+// tidak ikut terkirim). Kalau tidak diisi, ambil dari tampilan saat ini
+// (dipakai saat tombol "Simpan Data" diklik, karena saat itu semua ketikan
+// di layar MEMANG sedang resmi disimpan).
+function kirimDataKeFirebase(jadwalDataOverride) {
   console.log('[Firebase] kirimDataKeFirebase() dipanggil. hasilDB =', hasilDB);
   if (!hasilDB) {
     return Promise.reject(new Error('Firebase belum terhubung (cek apiKey/config di firebaseConfig).'));
   }
-  const jadwalData = [];
-  jadwalBody.querySelectorAll('tr').forEach((tr) => {
-    const editable = tr.querySelectorAll('.jadwal-editable');
-    const checkbox = tr.querySelector('input[type="checkbox"]');
-    jadwalData.push({
-      tutup: editable[0] ? editable[0].textContent.trim() : '',
-      result: editable[1] ? editable[1].textContent.trim() : '',
-      jadwal: editable[2] ? editable[2].textContent.trim() : '',
-      link: editable[3] ? editable[3].textContent.trim() : '',
-      checked: checkbox ? checkbox.checked : false
-    });
-  });
+  const jadwalData = jadwalDataOverride || kumpulkanJadwalData(true);
   const shioData = [];
   document.querySelectorAll('.shio-table tr').forEach((tr) => {
     const nameCell = tr.querySelector('.shio-name');
@@ -5885,9 +5928,14 @@ setInterval(() => {
         hasilCell.classList.remove('jadwal-result');
       }
     });
-    simpanJadwalData();
+    // Pakai teks baseline (bukan tampilan layar) supaya ketikan yang belum
+    // diklik "Simpan Data" tidak ikut tersimpan permanen gara-gara reset
+    // pergantian hari ini.
+    const jadwalDataReset = kumpulkanJadwalData(false);
+    localStorage.setItem(JADWAL_STORAGE_KEY, JSON.stringify(jadwalDataReset));
+    localStorage.setItem(JADWAL_DATE_KEY, getTodayStr());
     if (adaYangDireset) {
-      kirimDataKeFirebase().catch((err) => {
+      kirimDataKeFirebase(jadwalDataReset).catch((err) => {
         console.error('[Firebase] Gagal sinkron reset pergantian hari:', err);
       });
     }
