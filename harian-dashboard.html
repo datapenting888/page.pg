@@ -341,6 +341,79 @@
     .plain-row .col { font-size: 11.5px; }
   }
 
+  /* ---------- Kotak Pencarian ---------- */
+  .search-wrap {
+    flex: 1 1 260px;
+    max-width: 460px;
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .search-input {
+    width: 100%;
+    background: var(--surface-solid);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--sans);
+    font-weight: 500;
+    font-size: 15px;
+    padding: 11px 40px 11px 40px;
+    border-radius: var(--radius-sm);
+    outline: none;
+    transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+  }
+  .search-input::placeholder { color: var(--text-dim); }
+  .search-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+    background: var(--surface-hover);
+  }
+  .search-icon {
+    position: absolute; left: 12px; width: 18px; height: 18px;
+    color: var(--text-dim); pointer-events: none;
+  }
+  .search-clear {
+    position: absolute; right: 8px;
+    background: transparent; border: none; color: var(--text-dim); cursor: pointer;
+    width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; line-height: 1;
+    opacity: 0; pointer-events: none;
+    transition: opacity .15s ease, background .15s ease, color .15s ease;
+  }
+  .search-clear.show { opacity: 1; pointer-events: auto; }
+  .search-clear:hover { background: rgba(255,255,255,0.1); color: #fff; }
+  .search-count {
+    position: absolute; right: 40px;
+    font-family: var(--mono); font-size: 12.5px; color: var(--text-dim);
+    pointer-events: none; white-space: nowrap;
+    opacity: 0; transition: opacity .15s ease;
+  }
+  .search-count.show { opacity: 1; }
+  .search-hint {
+    display: none;
+    position: absolute; right: 8px;
+    font-family: var(--mono); font-size: 11px; color: var(--text-dim);
+    border: 1px solid var(--border); border-radius: 5px; padding: 2px 6px;
+    pointer-events: none;
+  }
+  .search-wrap:not(:focus-within) .search-hint.show { display: block; }
+
+  mark.hl {
+    background: rgba(251, 191, 36, 0.4);
+    color: #fff;
+    border-radius: 3px;
+    padding: 0 2px;
+    box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.45) inset;
+  }
+
+  @media (max-width: 640px) {
+    .search-wrap { max-width: none; flex-basis: 100%; order: 3; }
+    .search-input { font-size: 13px; padding: 9px 36px 9px 34px; }
+    .search-icon { width: 15px; height: 15px; left: 10px; }
+    .search-hint { display: none !important; }
+  }
+
   ::selection { background: var(--accent); color: #fff; }
 
   /* ---------- Klik 1 baris = otomatis diblok (highlight) & disalin ---------- */
@@ -403,6 +476,13 @@
         <h1>Harian Dashboard</h1>
         <span id="last-update-label">memuat…</span>
       </div>
+    </div>
+    <div class="search-wrap">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <input type="text" id="search-input" class="search-input" placeholder="Cari data di semua tab…" autocomplete="off" spellcheck="false">
+      <span class="search-count" id="search-count"></span>
+      <span class="search-hint show" id="search-hint">/</span>
+      <button class="search-clear" id="search-clear" title="Bersihkan pencarian">✕</button>
     </div>
     <div class="clock-wrap">
       <div>
@@ -574,6 +654,115 @@ function linkify(escapedText){
   );
 }
 
+/* ====================== PENCARIAN CEPAT (SEMUA TAB) ======================
+   Mengetik di kotak pencarian langsung menyaring isi di keempat tab
+   sekaligus (bukan cuma tab yang aktif), dengan jeda singkat (debounce)
+   supaya tetap ringan & responsif. Teks yang cocok juga disorot (highlight)
+   biar lebih cepat ketemu.
+=========================================================================== */
+let searchQuery = "";
+let searchDebounceTimer = null;
+
+function escapeRegex(str){
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function highlightMatch(escapedText, query){
+  if(!query) return escapedText;
+  const re = new RegExp(escapeRegex(query), 'ig');
+  return escapedText.replace(re, m => `<mark class="hl">${m}</mark>`);
+}
+
+function countMatches(name){
+  const s = state[name];
+  if(!s) return "–";
+  if(s.isFaq){
+    if(!s.query) return s.faqBlocks?.filter(b => b.type === "question").length ?? "–";
+    const q = s.query;
+    return (s.faqBlocks || []).filter(b => {
+      if(b.type === "title") return b.text.toLowerCase().includes(q);
+      if(b.type === "linkGroup") return b.items.some(it => it.label.toLowerCase().includes(q) || it.url.toLowerCase().includes(q));
+      if(b.type === "note") return b.text.toLowerCase().includes(q);
+      if(b.type === "spacer") return false;
+      return (b.rows || []).some(cols => cols && cols.some(c => c.toLowerCase().includes(q)));
+    }).length;
+  }
+  return s.filtered?.length ?? (s.rows?.length ?? "–");
+}
+
+function totalMatchesCount(){
+  return SHEETS.reduce((sum, name) => {
+    const c = countMatches(name);
+    return sum + (typeof c === "number" ? c : 0);
+  }, 0);
+}
+
+function applySearch(){
+  const q = searchQuery.trim().toLowerCase();
+  SHEETS.forEach(name => {
+    const s = state[name];
+    if(!s) return;
+    s.query = q;
+    if(!s.isFaq && s.headers){
+      s.filtered = q
+        ? s.rows.filter(row => row.some(cell => String(cell ?? "").toLowerCase().includes(q)))
+        : s.rows.slice();
+    }
+  });
+
+  buildTabs();
+  SHEETS.forEach(name => { if(state[name].isFaq || state[name].headers) renderTable(name); });
+
+  const countEl = document.getElementById("search-count");
+  if(countEl){
+    if(q){
+      countEl.textContent = `${totalMatchesCount()} hasil`;
+      countEl.classList.add("show");
+    }else{
+      countEl.textContent = "";
+      countEl.classList.remove("show");
+    }
+  }
+}
+
+function initSearch(){
+  const input = document.getElementById("search-input");
+  const clearBtn = document.getElementById("search-clear");
+  const hint = document.getElementById("search-hint");
+  if(!input) return;
+
+  input.addEventListener("input", () => {
+    searchQuery = input.value;
+    clearBtn.classList.toggle("show", searchQuery.length > 0);
+    hint.classList.toggle("show", searchQuery.length === 0);
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(applySearch, 120);
+  });
+
+  clearBtn.addEventListener("click", () => {
+    input.value = "";
+    searchQuery = "";
+    clearBtn.classList.remove("show");
+    hint.classList.add("show");
+    applySearch();
+    input.focus();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if(e.key === "/" && document.activeElement !== input && !e.metaKey && !e.ctrlKey && !e.altKey){
+      e.preventDefault();
+      input.focus();
+    }
+    if(e.key === "Escape" && document.activeElement === input && input.value){
+      input.value = "";
+      searchQuery = "";
+      clearBtn.classList.remove("show");
+      hint.classList.add("show");
+      applySearch();
+    }
+  });
+}
+
 /* ====================== AUTO BLOK & COPY PER BARIS ======================
    Setiap baris teks (.col di dalam content-row/plain-row, dan .faq-note)
    otomatis diblok (di-highlight seperti diseleksi) dan disalin ke clipboard
@@ -653,7 +842,7 @@ function renderFaqBlocks(blocks, query){
   return blocks.map(b => {
     if(b.type === "title"){
       if(q && !b.text.toLowerCase().includes(q)) return "";
-      return `<div class="faq-title">${escapeHtml(b.text)}</div>`;
+      return `<div class="faq-title">${highlightMatch(escapeHtml(b.text), q)}</div>`;
     }
 
     if(b.type === "spacer"){
@@ -665,24 +854,24 @@ function renderFaqBlocks(blocks, query){
       if(items.length === 0) return "";
       return `<div class="faq-link-card">${items.map(it => `
         <div class="faq-link-row">
-          <span class="faq-link-label">${escapeHtml(it.label)}</span>
-          <a href="${escapeHtml(it.url)}" target="_blank" rel="noopener noreferrer" class="faq-link">${escapeHtml(it.url)} ↗</a>
+          <span class="faq-link-label">${highlightMatch(escapeHtml(it.label), q)}</span>
+          <a href="${escapeHtml(it.url)}" target="_blank" rel="noopener noreferrer" class="faq-link">${highlightMatch(escapeHtml(it.url), q)} ↗</a>
         </div>`).join("")}</div>`;
     }
 
     if(b.type === "note"){
       if(q && !b.text.toLowerCase().includes(q)) return "";
-      return `<div class="faq-note">${linkify(escapeHtml(b.text))}</div>`;
+      return `<div class="faq-note">${linkify(highlightMatch(escapeHtml(b.text), q))}</div>`;
     }
 
     if(!rowsMatch(b.rows)) return "";
     const contentHtml = b.rows.length
       ? b.rows.map(cols => cols === null
           ? `<div class="content-spacer"></div>`
-          : `<div class="content-row">${cols.map(c => `<div class="col">${linkify(escapeHtml(c))}</div>`).join("")}</div>`
+          : `<div class="content-row">${cols.map(c => `<div class="col">${linkify(highlightMatch(escapeHtml(c), q))}</div>`).join("")}</div>`
         ).join("")
       : "";
-    return `<div class="faq-card ${b.type}"><div class="label">${linkify(escapeHtml(b.label))}</div>${contentHtml ? `<div class="content">${contentHtml}</div>` : ""}</div>`;
+    return `<div class="faq-card ${b.type}"><div class="label">${linkify(highlightMatch(escapeHtml(b.label), q))}</div>${contentHtml ? `<div class="content">${contentHtml}</div>` : ""}</div>`;
   }).join("");
 }
 
@@ -693,10 +882,7 @@ function buildTabs(){
     const tab = document.createElement("div");
     tab.className = "tab" + (name === activeSheet ? " active" : "");
     tab.dataset.sheet = name;
-    const s = state[name];
-    const count = s?.isFaq
-      ? (s.faqBlocks?.filter(b => b.type === "question").length ?? "–")
-      : (s?.rows?.length ?? "–");
+    const count = countMatches(name);
     tab.innerHTML = `<span class="dot"></span>${name}<span class="count">${count}</span>`;
     tab.addEventListener("click", () => switchTab(name));
     tabsEl.appendChild(tab);
@@ -758,7 +944,7 @@ function renderTable(name){
   const flushGroup = () => {
     if(currentGroup.length === 0) return;
     const rowsHtml = currentGroup.map(({ filledCells, isToday }) => {
-      const cols = filledCells.map(val => `<div class="col">${linkify(formatCell(val))}</div>`).join("");
+      const cols = filledCells.map(val => `<div class="col">${linkify(highlightMatch(formatCell(val), s.query))}</div>`).join("");
       return `<div class="plain-row${isToday ? ' today-row' : ''}">${cols}</div>`;
     }).join("");
     blocks.push(`<div class="plain-block">${rowsHtml}</div>`);
@@ -846,8 +1032,7 @@ async function loadAll(){
     }
   }));
 
-  buildTabs();
-  SHEETS.forEach(name => { if(state[name].isFaq || state[name].headers) renderTable(name); });
+  applySearch();
   renderFlapClock();
   btn.classList.remove("spinning");
 }
@@ -856,6 +1041,7 @@ function init(){
   const panelsEl = document.getElementById("panels");
   SHEETS.forEach(name => panelsEl.appendChild(buildPanelShell(name)));
   buildTabs();
+  initSearch();
 
   document.getElementById("refresh-btn").addEventListener("click", loadAll);
 
