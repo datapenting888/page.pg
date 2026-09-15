@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cek Nawala</title>
+<style>
+  :root{
+    --bg-panel: #0a0d1a;
+    --border-soft: rgba(255,255,255,0.15);
+    --text-light: #f3ede7;
+    --accent-ungu: #a78bfa;
+  }
+  *{ box-sizing: border-box; }
+  html, body{
+    margin:0;
+    height:100%;
+    background: var(--bg-panel);
+    color: var(--text-light);
+    font-family: 'Segoe UI', Arial, sans-serif;
+  }
+  body{
+    display:flex;
+    flex-direction:column;
+    padding:12px;
+  }
+  .cn-topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-bottom:12px;
+  }
+  .cn-info{
+    font-family:'Bree Serif', serif;
+    color:#dcdce3;
+    font-size:14.5px;
+  }
+  .cn-open-new{
+    font-family:'Bree Serif', serif;
+    font-size:16px;
+    color: var(--accent-ungu);
+    text-decoration:none;
+    opacity:0.5;
+    padding:4px;
+    line-height:1;
+  }
+  .cn-open-new:hover{ opacity:0.85; }
+  .cn-frame-wrap{
+    position:relative;
+    width:100%;
+    flex:1 1 auto;
+    min-height:420px;
+    border-radius:10px;
+    overflow:hidden;
+    border:1px solid var(--border-soft);
+    background:#0a0d1a;
+  }
+  .cn-frame-wrap iframe{
+    width:100%;
+    height:100%;
+    border:0;
+    display:block;
+    background:#fff;
+  }
+</style>
+</head>
+<body>
+
+  <!--
+    Halaman "CEK NAWALA" (file TERPISAH, sama pola dengan arsip.html /
+    harian-dashboard.html / generate-password.html). File ini dimuat lewat
+    iframe di dalam index.html (lihat div#pageCekNawala). Untuk mengubah isi
+    halaman Cek Nawala, cukup edit file cek-nawala.html ini -- TIDAK perlu
+    mengubah index.html.
+
+    Kalau iframe di bawah gagal tampil (kosong/blank), biasanya karena situs
+    tujuan memblokir tampilan embed (iframe). Tombol panah di kanan atas jadi
+    cadangan supaya tetap bisa dibuka di tab baru. Ganti href di tombol itu
+    SEKALIGUS src iframe di bawah kalau alamat nawala.asia berubah / tidak
+    berfungsi lagi.
+  -->
+  <div class="cn-topbar">
+    <span class="cn-info">Menampilkan situs Cek Nawala langsung di dalam dashboard.</span>
+    <a class="cn-open-new" href="https://www.nawala.asia/" target="_blank" rel="noopener noreferrer" title="Buka di tab baru">
+      &#8599;
+    </a>
+  </div>
+
+  <div class="cn-frame-wrap">
+    <iframe
+      src="https://www.nawala.asia/"
+      title="Cek Nawala"
+      referrerpolicy="no-referrer-when-downgrade">
+    </iframe>
+  </div>
+
+</body>
+</html>

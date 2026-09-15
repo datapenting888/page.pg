@@ -1620,10 +1620,11 @@
   </div>
 
   <!--
-    Menu "CEK NAWALA" — menampilkan situs pengecekan status blokir domain (Nawala)
-    langsung di dalam dashboard (lihat <div id="pageCekNawala"> beserta
-    <iframe id="cekNawalaFrame"> di bawahnya). Kalau alamatnya berubah,
-    cukup ganti src iframe tersebut.
+    Menu "CEK NAWALA" — kontennya berasal dari file TERPISAH "cek-nawala.html"
+    (sama pola dengan arsip.html / harian-dashboard.html / generate-password.html),
+    ditampilkan lewat <iframe id="cekNawalaFrame"> di dalam <div id="pageCekNawala">
+    di bawah. Untuk mengubah isi/alamat situs Nawala, cukup edit file
+    cek-nawala.html — TIDAK perlu mengubah index.html ini.
   -->
   <div class="nav-item" id="navCekNawala">
     <span class="icon">
@@ -6080,43 +6081,31 @@ setInterval(() => {
   </div>
 </div>
 
+<!--
+  Halaman "CEK NAWALA" — kontennya berasal dari file TERPISAH "cek-nawala.html"
+  yang ditampilkan lewat iframe di dalam dashboard (pola sama seperti menu
+  "ARSIP" / "DATA PENTING" / "GENERATE PASSWORD"). Untuk mengubah isi halaman
+  Cek Nawala, cukup edit file cek-nawala.html — TIDAK perlu mengubah
+  index.html ini.
+-->
 <div id="pageCekNawala" style="display:none;">
   <div class="topbar">
     <h1><span>CEK NAWALA &nbsp;&nbsp; • &nbsp;&nbsp; CEK NAWALA &nbsp;&nbsp; • &nbsp;&nbsp; CEK NAWALA &nbsp;&nbsp; • &nbsp;&nbsp; CEK NAWALA &nbsp;&nbsp; • &nbsp;&nbsp; CEK NAWALA &nbsp;&nbsp; • &nbsp;&nbsp; CEK NAWALA • &nbsp;&nbsp; CEK NAWALA &nbsp;&nbsp; • &nbsp;&nbsp; CEK NAWALA &nbsp;&nbsp; • &nbsp;&nbsp; CEK NAWALA</span></h1>
   </div>
 
   <div class="panel" style="padding:16px;">
-    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:12px;">
-      <span style="font-family:'Bree Serif', serif; color:#dcdce3; font-size:14.5px;">
-        Menampilkan situs Cek Nawala langsung di dalam dashboard.
-      </span>
-      <!--
-        Kalau iframe di bawah gagal tampil (kosong/blank), biasanya karena
-        situs tujuan memblokir tampilan embed (iframe). Tombol ini jadi
-        cadangan supaya tetap bisa dibuka di tab baru.
-        Ganti href="..." di sini SEKALIGUS id="cekNawalaFrame" src="..." di bawah
-        kalau alamat nawala.asia berubah / tidak berfungsi lagi.
-      -->
-      <a href="https://www.nawala.asia/" target="_blank" rel="noopener noreferrer"
-         title="Buka di tab baru"
-         style="font-family:'Bree Serif', serif; font-size:16px; color:#a78bfa; text-decoration:none; opacity:0.5; padding:4px; line-height:1;">
-        &#8599;
-      </a>
-    </div>
-
     <!--
       Tinggi kontainer iframe di bawah ini DIATUR LEWAT JAVASCRIPT (lihat fungsi
-      resizeCekNawalaFrame di bawah), bukan lewat CSS flex/vh statis. Ini supaya
-      kontainernya selalu memanjang penuh sampai ke bagian bawah layar (bukan
-      makin kecil), berapa pun tinggi layar/konten di atasnya.
+      resizeCekNawalaFrame di bawah), sama seperti pola Arsip/Data Penting/
+      Generate Password, supaya kontainer selalu memanjang penuh sampai ke
+      bagian bawah layar.
     -->
     <div id="cekNawalaWrap" style="position:relative; width:100%; height:70vh; min-height:420px; border-radius:10px; overflow:hidden; border:1px solid var(--border-soft); background:#0a0d1a;">
       <iframe
         id="cekNawalaFrame"
-        src="https://www.nawala.asia/"
+        src="cek-nawala.html"
         title="Cek Nawala"
-        style="width:100%; height:100%; border:0; display:block; background:#fff;"
-        referrerpolicy="no-referrer-when-downgrade">
+        style="width:100%; height:100%; border:0; display:block; background:transparent;">
       </iframe>
     </div>
   </div>
@@ -7338,9 +7327,10 @@ setInterval(() => {
 
 <script>
 (function(){
-  // Menghitung ulang tinggi kontainer iframe Cek Nawala supaya selalu
-  // memenuhi sisa layar sampai ke bawah (viewport), bukan terpaku pada
-  // vh statis yang bisa membuatnya terlihat "mengecil" di beberapa layar.
+  // Menghitung ulang tinggi kontainer iframe Cek Nawala (memuat file
+  // TERPISAH cek-nawala.html) supaya selalu memenuhi sisa layar sampai ke
+  // bawah (viewport), bukan terpaku pada vh statis yang bisa membuatnya
+  // terlihat "mengecil" di beberapa layar.
   function resizeCekNawalaFrame(){
     var wrap = document.getElementById('cekNawalaWrap');
     var page = document.getElementById('pageCekNawala');
