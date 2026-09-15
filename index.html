@@ -4178,7 +4178,7 @@
   /* ===== LAYOUT SANDINGAN (2 KOLOM) ===== */
   .hasil-scope .layout {
     width:100%;
-    max-width:1380px;
+    max-width:none;
     display:flex;
     flex-direction:row;
     align-items:flex-start;
@@ -4201,16 +4201,20 @@
     flex-direction:column;
     align-items:stretch;
     gap:10px;
-    flex:1 1 420px;
+    flex:2.4 1 420px;
     min-width:0;
-    max-width:980px;
+    max-width:none;
   }
   .hasil-scope .col-right .section-tag { max-width:none; }
   .hasil-scope .col-right .block { max-width:none; }
   /* Kontener kanan (Jadwal Pasaran) tetap sejajar di sisi kanan pada
      ukuran layar berapa pun -- TIDAK berpindah ke bawah col-left.
-     Sebagai gantinya, ukuran tulisan pada tabel menyusut mengikuti
-     lebar layar lewat clamp()/vw di aturan .jadwal-table di bawah. */
+     Lebarnya sekarang ikut melebar mengisi sisa layar (lihat .layout /
+     .col-right di atas, max-width:none), dan lebar tiap kolom tabel
+     dikunci proporsional lewat <colgroup> + table-layout:fixed supaya
+     sisa ruang tidak numpuk aneh di satu kolom saja saat layar lebar.
+     Ukuran tulisan tetap menyusut/membesar mengikuti lebar layar lewat
+     clamp()/vw di aturan .jadwal-table di bawah. */
 
   /* ===== JADWAL PASARAN ===== */
   .hasil-scope .jadwal-wrap { padding:2px; }
@@ -4245,9 +4249,19 @@
   .hasil-scope .jadwal-table {
     width:100%;
     min-width:900px;
-    table-layout:auto;
+    table-layout:fixed;
     border-collapse:collapse;
   }
+  /* Lebar kolom proporsional (total 100%) supaya saat kontainer melebar
+     mengisi layar besar, ruang ekstra terbagi rata ke semua kolom --
+     bukan menumpuk kosong di satu kolom terakhir saja. */
+  .hasil-scope .jadwal-table col.col-cek { width:4%; }
+  .hasil-scope .jadwal-table col.col-nama { width:15%; }
+  .hasil-scope .jadwal-table col.col-tutup { width:13%; }
+  .hasil-scope .jadwal-table col.col-result { width:14%; }
+  .hasil-scope .jadwal-table col.col-jadwal { width:15%; }
+  .hasil-scope .jadwal-table col.col-hasil { width:13%; }
+  .hasil-scope .jadwal-table col.col-link { width:26%; }
   .hasil-scope .jadwal-table thead th {
     background:var(--panel-2);
     color:var(--gold-bright);
@@ -4258,6 +4272,8 @@
     text-transform:uppercase;
     border:1px dashed var(--line);
     white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
     position:sticky;
     top:0;
   }
@@ -4270,6 +4286,8 @@
     color:var(--text-uniform);
     background:transparent;
     white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
   }
   .hasil-scope .jadwal-table tbody tr:nth-child(even) td {
     background:rgba(230,190,80,.05);
@@ -4306,6 +4324,10 @@
     text-decoration:underline;
     text-decoration-style:dotted;
     cursor:pointer;
+    white-space:normal;
+    overflow-wrap:break-word;
+    word-break:break-all;
+    text-overflow:clip;
   }
   .hasil-scope .jadwal-website:empty::before {
     content:"+ tambah link";
@@ -4902,6 +4924,15 @@
 <div class="block jadwal-wrap">
   <div class="jadwal-scroll">
   <table class="jadwal-table">
+    <colgroup>
+      <col class="col-cek">
+      <col class="col-nama">
+      <col class="col-tutup">
+      <col class="col-result">
+      <col class="col-jadwal">
+      <col class="col-hasil">
+      <col class="col-link">
+    </colgroup>
     <thead>
       <tr>
         <th></th>
