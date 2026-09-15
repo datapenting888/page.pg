@@ -4360,98 +4360,32 @@
     }
   }
   @media (max-width:620px){
-    .hasil-scope .jadwal-scroll {
-      overflow-x:visible;
-      padding-bottom:0;
-    }
-    .hasil-scope .jadwal-table {
-      display:block;
-      width:100%;
-      min-width:0;
-    }
-    .hasil-scope .jadwal-table thead {
-      position:absolute;
-      width:1px; height:1px;
-      overflow:hidden;
-      clip:rect(0 0 0 0);
-      white-space:nowrap;
-    }
-    .hasil-scope .jadwal-table tbody {
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-    }
-    .hasil-scope .jadwal-table tr {
-      display:flex;
-      flex-direction:column;
-      background:var(--panel);
-      border:1px solid var(--line);
-      border-radius:10px;
-      padding:8px 10px;
-    }
-    .hasil-scope .jadwal-table tbody tr:nth-child(even) td {
-      background:transparent;
-    }
+    /* Tabel Jadwal Pasaran di mobile sengaja dibuat SAMA seperti versi
+       desktop (bukan kartu bertumpuk) -- tetap tabel dengan header,
+       kalau lebar layar kurang, tinggal geser (scroll) ke samping,
+       persis seperti di layar besar. Ukuran tulisan tetap ikut menyusut
+       otomatis lewat clamp()/vw pada aturan .jadwal-table dasar. */
     .hasil-scope .jadwal-table td {
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      border:none;
-      border-bottom:1px dashed var(--line);
-      padding:7px 2px;
-      font-size:13px;
-      text-align:right;
-      white-space:normal;
-      word-break:break-word;
       position:relative;
       cursor:pointer;
       -webkit-tap-highlight-color:rgba(230,190,80,.25);
     }
-    .hasil-scope .jadwal-table tr td:last-child {
-      border-bottom:none;
-    }
-    .hasil-scope .jadwal-table td::before {
-      content:attr(data-label);
-      flex:0 0 auto;
-      color:var(--gold-bright);
-      font-family:Arial, sans-serif;
-      font-size:10.5px;
-      font-weight:700;
-      letter-spacing:.5px;
-      text-transform:uppercase;
-      text-align:left;
-    }
     .hasil-scope .jadwal-table td[data-label="Cek"] {
-      justify-content:flex-start;
-      flex-direction:row-reverse;
       cursor:default;
-    }
-    .hasil-scope .jadwal-table td[data-label="Cek"]::before {
-      margin-left:8px;
-    }
-    .hasil-scope .jadwal-nama {
-      font-size:14px;
-    }
-    .hasil-scope .jadwal-website {
-      min-width:0;
-      max-width:60%;
-      overflow:hidden;
-      text-overflow:ellipsis;
     }
     /* Tap 1 sel = otomatis tersalin ke clipboard (lihat JS: klik area sel
        yang BUKAN ikon pensil = salin isi sel; klik ikon pensil = masuk
        mode edit untuk kolom yang memang bisa diedit). */
     .hasil-scope .jadwal-table td.jadwal-editable {
-      padding-right:26px;
+      padding-right:22px;
     }
     .hasil-scope .jadwal-table td.jadwal-editable::after {
       content:"\270E";
       position:absolute;
-      right:4px;
+      right:3px;
       top:50%;
       transform:translateY(-50%);
-      font-size:12px;
+      font-size:10px;
       line-height:1;
       color:var(--ink-faint);
       opacity:.75;
@@ -5735,7 +5669,7 @@ jadwalBody.addEventListener('click', (e) => {
 
   if (td.classList.contains('jadwal-editable')) {
     const rect = td.getBoundingClientRect();
-    const zonaIkonPensil = rect.right - 32;
+    const zonaIkonPensil = rect.right - 26;
     if (e.clientX >= zonaIkonPensil) {
       // Tap di zona ikon pensil -> masuk mode edit
       e.preventDefault();
