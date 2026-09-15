@@ -7,17 +7,22 @@
 <style>
   :root{
     --bg: #0a0d1a;
-    --card-bg: #12162a;
-    --card-bg-hover: #161b34;
-    --border-soft: rgba(255,255,255,0.07);
-    --border-hover: rgba(255,255,255,0.14);
-    --text-primary: #e9ecf4;
-    --text-secondary: #8d96a8;
-    --accent: #e8b854;
-    --accent-soft: rgba(232,184,84,0.14);
-    --danger: #e8697a;
-    --shadow-soft: 0 8px 24px rgba(0,0,0,0.35);
-    --shadow-lift: 0 16px 36px rgba(0,0,0,0.45), 0 0 0 1px rgba(232,184,84,0.06);
+    --card-bg: #14172c;
+    --card-bg-hover: #1a1e3a;
+    --border-soft: rgba(255,255,255,0.08);
+    --border-hover: rgba(255,255,255,0.16);
+    --text-primary: #f1eef9;
+    --text-secondary: #9a94b8;
+    --accent: #ffb454;
+    --accent-soft: rgba(255,180,84,0.16);
+    --danger: #ff6b8b;
+    --c1: #ff6ec4;
+    --c2: #7c5cff;
+    --c3: #33d6c0;
+    --c4: #ffb454;
+    --c5: #6ea8ff;
+    --shadow-soft: 0 8px 24px rgba(10,6,30,0.45);
+    --shadow-lift: 0 18px 40px rgba(10,6,30,0.55), 0 0 0 1px rgba(124,92,255,0.10);
     --ease: cubic-bezier(.22,.9,.35,1);
   }
   html, body{
@@ -26,12 +31,30 @@
     height:100%;
     min-height:100vh;
     background:
-      radial-gradient(1100px 600px at 10% -10%, rgba(232,184,84,0.10), transparent 60%),
-      radial-gradient(900px 500px at 100% 0%, rgba(120,110,255,0.10), transparent 55%),
-      linear-gradient(160deg, #0d1120 0%, #0a0d1a 45%, #090b16 100%);
+      radial-gradient(900px 520px at 8% -8%, rgba(255,110,196,0.20), transparent 58%),
+      radial-gradient(800px 480px at 95% 0%, rgba(124,92,255,0.22), transparent 55%),
+      radial-gradient(700px 460px at 50% 100%, rgba(51,214,192,0.14), transparent 60%),
+      radial-gradient(600px 400px at 90% 90%, rgba(255,180,84,0.10), transparent 55%),
+      linear-gradient(160deg, #100c24 0%, #0a0d1a 45%, #0a0818 100%);
     background-attachment:fixed;
+    background-size:200% 200%;
+    animation:meshDrift 22s ease-in-out infinite;
     color:var(--text-primary);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  }
+  @keyframes meshDrift{
+    0%{ background-position:0% 0%; }
+    50%{ background-position:60% 40%; }
+    100%{ background-position:0% 0%; }
+  }
+  ::selection{ background:var(--c2); color:#fff; }
+  ::-webkit-scrollbar{ width:10px; height:10px; }
+  ::-webkit-scrollbar-track{ background:transparent; }
+  ::-webkit-scrollbar-thumb{
+    background:linear-gradient(var(--c2), var(--c1));
+    border-radius:10px;
+    border:2px solid transparent;
+    background-clip:padding-box;
   }
   *{ box-sizing:border-box; }
   .keep-wrap{
@@ -48,6 +71,23 @@
     flex-direction:column;
     gap:12px;
   }
+  .keep-brand{
+    font-size:22px;
+    font-weight:800;
+    letter-spacing:.3px;
+    text-align:center;
+    margin:2px 0 6px;
+    background:linear-gradient(90deg, var(--c1), var(--c2) 45%, var(--c5) 75%, var(--c3));
+    background-size:200% auto;
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    animation:brandShine 6s linear infinite;
+  }
+  @keyframes brandShine{
+    0%{ background-position:0% center; }
+    100%{ background-position:200% center; }
+  }
   .keep-search-row{
     position:relative;
   }
@@ -56,12 +96,13 @@
     left:14px;
     top:50%;
     transform:translateY(-50%);
-    color:var(--text-secondary);
+    color:var(--c1);
     pointer-events:none;
   }
   .keep-search{
     width:100%;
-    background:var(--card-bg);
+    background:rgba(20,23,44,0.65);
+    backdrop-filter:blur(10px);
     border:1px solid var(--border-soft);
     border-radius:26px;
     padding:11px 16px 11px 40px;
@@ -73,13 +114,13 @@
   }
   .keep-search:hover{ box-shadow:var(--shadow-lift); }
   .keep-search:focus{
-    border-color:var(--accent);
-    box-shadow:var(--shadow-lift), 0 0 0 3px var(--accent-soft);
+    border-color:var(--c2);
+    box-shadow:var(--shadow-lift), 0 0 0 3px rgba(124,92,255,0.22);
   }
   .keep-search::placeholder{ color:var(--text-secondary); }
 
   .composer{
-    background:linear-gradient(160deg, var(--card-bg) 0%, #151a30 100%);
+    background:linear-gradient(160deg, rgba(255,110,196,0.09), rgba(124,92,255,0.09) 45%, rgba(51,214,192,0.07)), var(--card-bg);
     border:1px solid var(--border-soft);
     border-radius:22px;
     padding:11px 16px;
@@ -89,8 +130,8 @@
   .composer:hover{ box-shadow:var(--shadow-lift); }
   .composer.active{
     border-radius:16px;
-    border-color:var(--accent);
-    box-shadow:var(--shadow-lift), 0 0 0 3px var(--accent-soft);
+    border-color:var(--c2);
+    box-shadow:var(--shadow-lift), 0 0 0 3px rgba(124,92,255,0.22);
   }
   .composer textarea{
     width:100%;
@@ -125,14 +166,17 @@
 
   .note-title{
     font-size:15px;
-    font-weight:600;
+    font-weight:700;
     line-height:1.4;
-    color:var(--text-primary);
+    background:linear-gradient(90deg, var(--c4), var(--c1));
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
     margin-bottom:4px;
     cursor:pointer;
     word-break:break-word;
   }
-  .note-title.copied-flash{ color:var(--accent); }
+  .note-title.copied-flash{ filter:brightness(1.4); }
 
   .thumb-row{
     display:flex;
@@ -204,12 +248,12 @@
     transition:transform .15s var(--ease), box-shadow .2s var(--ease), background .2s var(--ease), color .2s var(--ease);
   }
   .btn-save{
-    background:linear-gradient(135deg, #f2c568, var(--accent));
-    color:#1a1406;
+    background:linear-gradient(135deg, var(--c1), var(--c2));
+    color:#fff;
     font-weight:600;
-    box-shadow:0 4px 14px rgba(232,184,84,0.28);
+    box-shadow:0 4px 14px rgba(124,92,255,0.35);
   }
-  .btn-save:hover:not(:disabled){ transform:translateY(-1px); box-shadow:0 8px 20px rgba(232,184,84,0.4); }
+  .btn-save:hover:not(:disabled){ transform:translateY(-1px); box-shadow:0 8px 22px rgba(255,110,196,0.4); }
   .btn-save:active:not(:disabled){ transform:translateY(0); }
   .btn-save:disabled{ opacity:.35; cursor:default; box-shadow:none; }
   .btn-cancel{ background:transparent; color:var(--text-secondary); }
@@ -232,8 +276,9 @@
     max-width:1120px;
     margin:0 auto 10px;
     font-size:12px;
-    color:var(--text-secondary);
-    font-weight:600;
+    color:var(--c1);
+    font-weight:700;
+    letter-spacing:.6px;
     padding-left:4px;
   }
   .keep-grid{
@@ -258,13 +303,25 @@
     background:linear-gradient(160deg, var(--card-bg) 0%, #10142a 100%);
     border:1px solid var(--border-soft);
     border-radius:16px;
-    padding:12px 14px 8px;
-    box-shadow:0 4px 14px rgba(0,0,0,0.22);
+    padding:16px 14px 8px;
+    box-shadow:0 4px 14px rgba(10,6,30,0.3);
     transition:background .2s var(--ease), border-color .2s var(--ease), transform .2s var(--ease), box-shadow .25s var(--ease);
     position:relative;
+    overflow:hidden;
   }
+  .note-card::before{
+    content:'';
+    position:absolute;
+    top:0; left:0; right:0;
+    height:4px;
+    background:linear-gradient(90deg, var(--c1), var(--c2));
+  }
+  .note-card:nth-of-type(5n+2)::before{ background:linear-gradient(90deg, var(--c2), var(--c5)); }
+  .note-card:nth-of-type(5n+3)::before{ background:linear-gradient(90deg, var(--c3), var(--c5)); }
+  .note-card:nth-of-type(5n+4)::before{ background:linear-gradient(90deg, var(--c4), var(--c1)); }
+  .note-card:nth-of-type(5n+5)::before{ background:linear-gradient(90deg, var(--c5), var(--c3)); }
   .note-card:hover{
-    background:linear-gradient(160deg, var(--card-bg-hover) 0%, #171d38 100%);
+    background:linear-gradient(160deg, var(--card-bg-hover) 0%, #1c2140 100%);
     border-color:var(--border-hover);
     box-shadow:var(--shadow-lift);
     transform:translateY(-3px);
@@ -348,8 +405,10 @@
   }
   .icon-btn:hover{ background:rgba(255,255,255,0.1); color:var(--text-primary); transform:scale(1.08); }
   .icon-btn:active{ transform:scale(0.95); }
-  .icon-btn.pinned{ color:var(--accent); text-shadow:0 0 10px var(--accent-soft); }
-  .icon-btn.danger:hover{ color:var(--danger); }
+  .icon-btn.pinned{ color:var(--c4); text-shadow:0 0 10px rgba(255,180,84,0.5); }
+  .icon-btn[data-action="edit"]:hover{ color:var(--c5); background:rgba(110,168,255,0.14); }
+  .icon-btn[data-action="pin"]:hover{ color:var(--c4); background:rgba(255,180,84,0.14); }
+  .icon-btn.danger:hover{ color:var(--danger); background:rgba(255,107,139,0.14); }
   .icon-btn svg{ width:16px; height:16px; }
 
   .note-toast{
@@ -357,12 +416,12 @@
     bottom:24px;
     left:50%;
     transform:translateX(-50%) translateY(20px);
-    background:linear-gradient(160deg, #1f2748, #1c2340);
+    background:linear-gradient(160deg, #241c3f, #1c2340);
     color:var(--text-primary);
     padding:10px 18px;
     border-radius:12px;
     font-size:13px;
-    border:1px solid var(--border-soft);
+    border:1px solid rgba(124,92,255,0.25);
     opacity:0;
     pointer-events:none;
     transition:opacity .25s var(--ease), transform .25s var(--ease);
@@ -376,7 +435,7 @@
 
   .lightbox{
     position:fixed; inset:0;
-    background:rgba(5,6,12,0.9);
+    background:radial-gradient(circle at 50% 40%, rgba(124,92,255,0.12), rgba(5,6,12,0.92));
     display:none;
     align-items:center;
     justify-content:center;
@@ -388,7 +447,7 @@
     max-width:100%;
     max-height:100%;
     border-radius:14px;
-    box-shadow:0 20px 60px rgba(0,0,0,0.6);
+    box-shadow:0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06);
   }
 
   @media (max-width:480px){
@@ -399,13 +458,14 @@
 <body>
   <div class="keep-wrap">
     <div class="keep-topbar">
+      <div class="keep-brand">✨ Keep</div>
       <div class="keep-search-row">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input type="text" class="keep-search" id="searchInput" placeholder="Telusuri catatan...">
       </div>
       <div class="composer" id="composer">
         <input type="text" class="composer-title" id="composerTitle" placeholder="Judul">
-        <textarea id="composerInput" placeholder="Buat catatan... (tempel / paste link dan pk anda)" rows="1"></textarea>
+        <textarea id="composerInput" placeholder="Buat catatan... (tempel gambar dengan Ctrl+V)" rows="1"></textarea>
         <div class="thumb-row" id="composerThumbs"></div>
         <div class="composer-actions">
           <button class="btn btn-cancel" id="composerCancel">Batal</button>
