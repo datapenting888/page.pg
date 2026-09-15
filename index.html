@@ -4316,6 +4316,105 @@
     cursor:text;
   }
 
+  /* ===== VERSI MOBILE (RESULT & JADWAL PASARAN) =====
+     - Di bawah 900px: kolom kiri (result SG/CA, shio, kalkulator) dan
+       kolom kanan (Jadwal Pasaran) ditumpuk vertikal (bukan sandingan
+       sempit) supaya masing-masing dapat lebar penuh layar.
+     - Di bawah 620px: tabel Jadwal Pasaran diubah dari tabel lebar yang
+       di-scroll horizontal menjadi kartu per pasaran (tumpuk), memakai
+       atribut data-label pada tiap <td> (lihat renderJadwal di JS) supaya
+       tetap jelas kolom mana yang mana tanpa perlu geser ke samping. */
+  @media (max-width:900px){
+    .hasil-scope .layout {
+      flex-direction:column;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .hasil-scope .col-left,
+    .hasil-scope .col-right {
+      max-width:560px;
+      width:100%;
+      flex:1 1 auto;
+    }
+  }
+  @media (max-width:620px){
+    .hasil-scope .jadwal-scroll {
+      overflow-x:visible;
+      padding-bottom:0;
+    }
+    .hasil-scope .jadwal-table {
+      display:block;
+      width:100%;
+      min-width:0;
+    }
+    .hasil-scope .jadwal-table thead {
+      position:absolute;
+      width:1px; height:1px;
+      overflow:hidden;
+      clip:rect(0 0 0 0);
+      white-space:nowrap;
+    }
+    .hasil-scope .jadwal-table tbody {
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .hasil-scope .jadwal-table tr {
+      display:flex;
+      flex-direction:column;
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:8px 10px;
+    }
+    .hasil-scope .jadwal-table tbody tr:nth-child(even) td {
+      background:transparent;
+    }
+    .hasil-scope .jadwal-table td {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border:none;
+      border-bottom:1px dashed var(--line);
+      padding:7px 2px;
+      font-size:13px;
+      text-align:right;
+      white-space:normal;
+      word-break:break-word;
+    }
+    .hasil-scope .jadwal-table tr td:last-child {
+      border-bottom:none;
+    }
+    .hasil-scope .jadwal-table td::before {
+      content:attr(data-label);
+      flex:0 0 auto;
+      color:var(--gold-bright);
+      font-family:Arial, sans-serif;
+      font-size:10.5px;
+      font-weight:700;
+      letter-spacing:.5px;
+      text-transform:uppercase;
+      text-align:left;
+    }
+    .hasil-scope .jadwal-table td[data-label="Cek"] {
+      justify-content:flex-start;
+      flex-direction:row-reverse;
+    }
+    .hasil-scope .jadwal-table td[data-label="Cek"]::before {
+      margin-left:8px;
+    }
+    .hasil-scope .jadwal-nama {
+      font-size:14px;
+    }
+    .hasil-scope .jadwal-website {
+      min-width:0;
+      max-width:60%;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+  }
+
   /* ===== HITUNGAN TOTO SINGAPORE ===== */
   .hasil-scope .toto-wrap {
     background-color: var(--panel);
@@ -5285,13 +5384,13 @@ dataJadwal.forEach((row, idx) => {
 
   const tr = document.createElement('tr');
   tr.innerHTML = `
-    <td><input type="checkbox" ${checked ? 'checked' : ''}></td>
-    <td class="jadwal-nama">${row[0]}</td>
-    <td class="jadwal-editable" contenteditable="true">${tutup}</td>
-    <td class="jadwal-editable" contenteditable="true">${result}</td>
-    <td class="jadwal-editable" contenteditable="true">${jadwal}</td>
-    <td class="jadwal-hasil${checked ? ' jadwal-result' : ''}">${checked ? 'RESULT' : 'BELUM RESULT'}</td>
-    <td class="jadwal-editable jadwal-website" contenteditable="true">${link}</td>
+    <td data-label="Cek"><input type="checkbox" ${checked ? 'checked' : ''}></td>
+    <td class="jadwal-nama" data-label="Nama Pasaran">${row[0]}</td>
+    <td class="jadwal-editable" data-label="Jam Tutup" contenteditable="true">${tutup}</td>
+    <td class="jadwal-editable" data-label="Result" contenteditable="true">${result}</td>
+    <td class="jadwal-editable" data-label="Jadwal" contenteditable="true">${jadwal}</td>
+    <td class="jadwal-hasil${checked ? ' jadwal-result' : ''}" data-label="Hasil">${checked ? 'RESULT' : 'BELUM RESULT'}</td>
+    <td class="jadwal-editable jadwal-website" data-label="Link Website" contenteditable="true">${link}</td>
   `;
   jadwalBody.appendChild(tr);
 });
