@@ -918,6 +918,31 @@
   }
 
 </style>
+<style>
+  /* ===== HOKIDRAW · PERHITUNGAN HADIAH ===== */
+  .hasil-scope .hd-wrap { position:relative; width:100%; margin-top:18px; padding:12px; background:var(--panel); border:1px solid var(--line-strong); border-radius:10px; }
+  .hasil-scope .hd-title { text-align:center; font-size:15px; letter-spacing:1px; color:var(--gold-bright); margin:0 0 4px; }
+  .hasil-scope .hd-sub { text-align:center; font-size:11px; color:var(--ink-dim); margin-bottom:10px; }
+  .hasil-scope .hd-tabs { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-bottom:10px; }
+  .hasil-scope .hd-tab { border:1px solid var(--line-strong); background:var(--panel-2); color:var(--ink-dim); font:inherit; font-size:11px; padding:5px 10px; border-radius:6px; cursor:pointer; }
+  .hasil-scope .hd-tab.active { background:var(--gold); color:#1b1405; border-color:var(--gold-bright); }
+  .hasil-scope .hd-section { display:inline-block; margin:10px auto 6px; padding:2px 10px; font-size:11px; color:var(--gold-bright); border:1px solid var(--gold-deep); border-radius:6px; }
+  .hasil-scope .hd-sec-wrap { text-align:center; }
+  .hasil-scope .hd-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; text-align:center; }
+  .hasil-scope .hd-card { background:var(--void); border:1px solid var(--line); border-radius:8px; padding:8px; }
+  .hasil-scope .hd-name { font-size:12px; color:var(--text-uniform); padding-bottom:5px; border-bottom:1px dashed var(--line-strong); margin-bottom:5px; }
+  .hasil-scope .hd-info { font-size:10px; color:var(--ink-dim); margin-bottom:6px; }
+  .hasil-scope .hd-input { width:100%; padding:6px; border-radius:6px; border:1px solid var(--line); background:#fff7e2; color:#1b1405; font:inherit; font-size:11px; text-align:center; margin-bottom:6px; }
+  .hasil-scope .hd-btns { display:flex; gap:5px; }
+  .hasil-scope .hd-btn { flex:1; border:0; border-radius:6px; padding:6px 0; font:inherit; font-size:10px; color:#fff; cursor:pointer; }
+  .hasil-scope .hd-hitung { background:#d63a55; }
+  .hasil-scope .hd-reset { background:#3a8fe0; }
+  .hasil-scope .hd-out { margin-top:6px; font-size:10px; line-height:1.5; color:var(--gold-bright); text-align:left; display:none; }
+  .hasil-scope .hd-out.show { display:block; }
+  .hasil-scope .hd-out b { color:var(--text-uniform); }
+  .hasil-scope .hd-out .neg { color:#ff9a9a; }
+</style>
+
 
 <div class="bg-photo"></div>
 
@@ -1192,6 +1217,21 @@
 
 <div class="simpan-btn-wrap">
   <button type="button" id="simpanDataBtn" class="simpan-btn">Simpan Data</button>
+</div>
+
+
+<!-- HOKIDRAW · PERHITUNGAN HADIAH -->
+<div class="hd-wrap" id="hd-wrap">
+  <div class="hd-title">HOKIDRAW &middot; PERHITUNGAN HADIAH</div>
+  <div class="hd-sub">Pasaran HOKIDRAW &middot; result 24X (1 jam sekali)</div>
+  <div class="hd-tabs" id="hd-tabs">
+    <button type="button" class="hd-tab active" data-f="semua">SEMUA</button>
+    <button type="button" class="hd-tab" data-f="diskon">DISKON</button>
+    <button type="button" class="hd-tab" data-f="betfull">BET FULL</button>
+    <button type="button" class="hd-tab" data-f="tepat">TEPAT &amp; BB</button>
+    <button type="button" class="hd-tab" data-f="lainnya">LAINNYA</button>
+  </div>
+  <div id="hd-body"></div>
 </div>
 
 </div>
@@ -2396,6 +2436,115 @@ setInterval(() => {
 </script>
 </div>
   </div>
+
+
+<!-- Script HOKIDRAW · PERHITUNGAN HADIAH -->
+<script>
+(function(){
+  // Data hadiah HOKIDRAW. d = diskon (%), h = pengali hadiah, k = kei (%)
+  var HD_DATA = [
+    {g:'diskon',  t:'Diskon',   items:[
+      {n:'DISKON 5D', d:38, h:50000},{n:'DISKON 4D', d:20, h:7000},
+      {n:'DISKON 3D', d:20, h:750},  {n:'DISKON 2D', d:20, h:75}]},
+    {g:'betfull', t:'Bet Full', items:[
+      {n:'BET FULL 5D', d:0, h:88000},{n:'BET FULL 4D', d:0, h:10000},
+      {n:'BET FULL 3D', d:0, h:1000}, {n:'BET FULL 2D', d:0, h:100}]},
+    {g:'tepat',   t:'Tepat & BB', items:[
+      {n:'5D TEPAT', d:0, h:50000},{n:'5D BB', d:0, h:350},
+      {n:'4D TEPAT', d:0, h:5000}, {n:'4D BB', d:0, h:180},
+      {n:'3D TEPAT', d:0, h:500},  {n:'3D BB', d:0, h:75},
+      {n:'2D TEPAT', d:0, h:80},   {n:'2D BB', d:0, h:15}]},
+    {g:'lainnya', t:'Lainnya',  items:[
+      {n:'COLOK BEBAS', d:0, h:0.9},
+      {n:'COLOK BEBAS 2D(2)', d:0, h:4},  {n:'COLOK BEBAS 2D(3)', d:0, h:6},
+      {n:'COLOK BEBAS 2D(4)', d:0, h:20}, {n:'COLOK BEBAS 2D(5)', d:0, h:200},
+      {n:'COLOK BEBAS 4D(4)', d:0, h:50}, {n:'COLOK BEBAS 4D(5)', d:0, h:200},
+      {n:'COLOK NAGA(3)', d:0, h:12}, {n:'COLOK NAGA(4)', d:0, h:30},
+      {n:'COLOK NAGA(5)', d:0, h:125},{n:'COLOK JITU', d:0, h:8},
+      {n:'TENGAH TEPI', d:2, k:-2.2},
+      {n:'DASAR GENAP - KECIL', d:2, k:10},
+      {n:'DASAR GANJIL - BESAR', d:2, k:-25},
+      {n:'50 - 50', d:2, k:-2.2},
+      {n:'SHIO', d:5, h:9.5},
+      {n:'KOMBINASI', d:8, h:2.7}]}
+  ];
+
+  function rp(n){ return 'Rp ' + Math.round(n).toLocaleString('id-ID'); }
+  function num(v){ return parseFloat(String(v).replace(/\./g,'').replace(/,/g,'.')) || 0; }
+  function fmtX(h){ return 'x' + String(h).replace('.', '.'); }
+
+  var body = document.getElementById('hd-body');
+  if(!body) return;
+
+  HD_DATA.forEach(function(sec){
+    var wrap = document.createElement('div');
+    wrap.className = 'hd-sec-wrap';
+    wrap.dataset.g = sec.g;
+    var grid = '';
+    sec.items.forEach(function(it, i){
+      var info = (it.k !== undefined)
+        ? 'Diskon : ' + it.d + '% | Kei : ' + it.k + '%'
+        : 'Diskon : ' + it.d + '% | Hadiah : ' + fmtX(it.h);
+      grid += '<div class="hd-card" data-d="'+it.d+'" data-h="'+(it.h===undefined?'':it.h)+'" data-k="'+(it.k===undefined?'':it.k)+'">' +
+        '<div class="hd-name">'+it.n+'</div>' +
+        '<div class="hd-info">'+info+'</div>' +
+        '<input class="hd-input" type="text" inputmode="numeric" placeholder="Input Nominal Taruhan">' +
+        '<div class="hd-btns"><button type="button" class="hd-btn hd-hitung">HITUNG</button>' +
+        '<button type="button" class="hd-btn hd-reset">RESET</button></div>' +
+        '<div class="hd-out"></div></div>';
+    });
+    wrap.innerHTML = '<span class="hd-section">'+sec.t+'</span><div class="hd-grid">'+grid+'</div>';
+    body.appendChild(wrap);
+  });
+
+  function hitung(card){
+    var nominal = num(card.querySelector('.hd-input').value);
+    var out = card.querySelector('.hd-out');
+    if(nominal <= 0){ out.classList.remove('show'); out.innerHTML=''; return; }
+    var d = parseFloat(card.dataset.d) || 0;
+    var potongan = nominal * d / 100;
+    var bayar = nominal - potongan;
+    var html = 'Taruhan: <b>'+rp(nominal)+'</b><br>Potongan diskon: <b>'+rp(potongan)+'</b><br>Bayar: <b>'+rp(bayar)+'</b><br>';
+    if(card.dataset.k !== ''){
+      var k = parseFloat(card.dataset.k);
+      var nilai = nominal * k / 100;
+      html += 'Nilai Kei ('+k+'%): <b class="'+(nilai<0?'neg':'')+'">'+rp(nilai)+'</b>';
+    } else {
+      var h = parseFloat(card.dataset.h);
+      html += 'Hadiah (x'+h+'): <b>'+rp(nominal * h)+'</b>';
+    }
+    out.innerHTML = html;
+    out.classList.add('show');
+  }
+
+  body.addEventListener('click', function(e){
+    var card = e.target.closest('.hd-card');
+    if(!card) return;
+    if(e.target.classList.contains('hd-hitung')) hitung(card);
+    if(e.target.classList.contains('hd-reset')){
+      card.querySelector('.hd-input').value = '';
+      var o = card.querySelector('.hd-out'); o.classList.remove('show'); o.innerHTML = '';
+    }
+  });
+  body.addEventListener('input', function(e){
+    if(!e.target.classList.contains('hd-input')) return;
+    var raw = e.target.value.replace(/\D/g,'');
+    e.target.value = raw ? Number(raw).toLocaleString('id-ID') : '';
+  });
+  body.addEventListener('keydown', function(e){
+    if(e.key === 'Enter' && e.target.classList.contains('hd-input')) hitung(e.target.closest('.hd-card'));
+  });
+
+  document.getElementById('hd-tabs').addEventListener('click', function(e){
+    var b = e.target.closest('.hd-tab'); if(!b) return;
+    document.querySelectorAll('#hd-tabs .hd-tab').forEach(function(t){ t.classList.toggle('active', t===b); });
+    var f = b.dataset.f;
+    body.querySelectorAll('.hd-sec-wrap').forEach(function(s){
+      s.style.display = (f==='semua' || s.dataset.g===f) ? '' : 'none';
+    });
+  });
+})();
+</script>
 
 </body>
 </html>
