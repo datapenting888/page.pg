@@ -5558,8 +5558,69 @@
     }
   };
 
+  // HOKIDRAW (Perhitungan Togel PNG): rates per reference screenshots.
+  // Has 5D-based Diskon/Bet Full/Tepat & BB, no Prize category, and its own
+  // Lainnya list (with 2D/4D Colok Bebas and 3-5 Colok Naga variants).
+  var HOKIDRAW_CATEGORIES = {
+    diskon: {
+      label: "Diskon",
+      items: [
+        { name:"DISKON 5D :", diskon:38, mode:"hadiah", value:50000 },
+        { name:"DISKON 4D :", diskon:20, mode:"hadiah", value:7000 },
+        { name:"DISKON 3D :", diskon:20, mode:"hadiah", value:750 },
+        { name:"DISKON 2D :", diskon:20, mode:"hadiah", value:75 }
+      ]
+    },
+    betfull: {
+      label: "Bet Full",
+      items: [
+        { name:"BET FULL 5D :", diskon:0, mode:"hadiah", value:88000 },
+        { name:"BET FULL 4D :", diskon:0, mode:"hadiah", value:10000 },
+        { name:"BET FULL 3D :", diskon:0, mode:"hadiah", value:1000 },
+        { name:"BET FULL 2D :", diskon:0, mode:"hadiah", value:100 }
+      ]
+    },
+    tepatbb: {
+      label: "Tepat & BB",
+      items: [
+        { name:"5D TEPAT:", diskon:0, mode:"hadiah", value:50000 },
+        { name:"5D BB:", diskon:0, mode:"hadiah", value:350 },
+        { name:"4D TEPAT:", diskon:0, mode:"hadiah", value:5000 },
+        { name:"4D BB:", diskon:0, mode:"hadiah", value:180 },
+        { name:"3D TEPAT:", diskon:0, mode:"hadiah", value:500 },
+        { name:"3D BB:", diskon:0, mode:"hadiah", value:75 },
+        { name:"2D TEPAT:", diskon:0, mode:"hadiah", value:80 },
+        { name:"2D BB:", diskon:0, mode:"hadiah", value:15 }
+      ]
+    },
+    lainnya: {
+      label: "Lainnya",
+      showTotal: true,
+      items: [
+        { name:"COLOK BEBAS", diskon:0, mode:"hadiah", value:0.9 },
+        { name:"COLOK BEBAS 2D(2)", diskon:0, mode:"hadiah", value:4 },
+        { name:"COLOK BEBAS 2D(3)", diskon:0, mode:"hadiah", value:6 },
+        { name:"COLOK BEBAS 2D(4)", diskon:0, mode:"hadiah", value:20 },
+        { name:"COLOK BEBAS 2D(5)", diskon:0, mode:"hadiah", value:200 },
+        { name:"COLOK BEBAS 4D(4)", diskon:0, mode:"hadiah", value:50 },
+        { name:"COLOK BEBAS 4D(5)", diskon:0, mode:"hadiah", value:200 },
+        { name:"COLOK NAGA(3)", diskon:0, mode:"hadiah", value:12 },
+        { name:"COLOK NAGA(4)", diskon:0, mode:"hadiah", value:30 },
+        { name:"COLOK NAGA(5)", diskon:0, mode:"hadiah", value:125 },
+        { name:"COLOK JITU", diskon:0, mode:"hadiah", value:8 },
+        { name:"TENGAH TEPI", diskon:2, mode:"kei", value:-2.2 },
+        { name:"DASAR GENAP - KECIL", diskon:2, mode:"kei", value:10 },
+        { name:"DASAR GANJIL - BESAR", diskon:2, mode:"kei", value:-25 },
+        { name:"50 - 50", diskon:2, mode:"kei", value:-2.2 },
+        { name:"SHIO", diskon:5, mode:"hadiah", value:9.5 },
+        { name:"KOMBINASI", diskon:8, mode:"hadiah", value:2.7 }
+      ]
+    }
+  };
+
   var MARKET_NAMES = [
     "HONGKONG LOTTO",
+    "HOKIDRAW",
     "SYDNEY LOTTO",
     "KING KONG4D MALAM",
     "KING KONG4D SORE",
@@ -5623,6 +5684,7 @@
     MARKETS[name] = { categories: TOTOMACAU_CATEGORIES };
   });
   MARKETS["TOTO CAMBODIA LIVE"] = { categories: TOTOCAMBODIA_CATEGORIES };
+  MARKETS["HOKIDRAW"] = { categories: HOKIDRAW_CATEGORIES };
   ["CHELSEA21","CHELSEA19","CHELSEA15","CHELSEA11",
    "POIPET22","POIPET19","POIPET15","POIPET12",
    "BRUNEI21","BRUNEI14","BRUNEI02",
